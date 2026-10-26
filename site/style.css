@@ -1,0 +1,132 @@
+/* team301 のインデックス（#154）。見た目は A 案「さんま缶」（朱と墨の2色。別案が出たら #169）
+   はまこく Exp.（青・明朝）や はまこく Map（緑）と混ざらないよう、青・緑・明朝は使わない */
+:root {
+  color-scheme: light dark;
+  --ground: #ffffff;
+  --ink: #1e1b18;
+  --accent: #c33b1c;
+  --on-accent: #ffffff;
+  --muted: #6e665e;
+  --display: "Dela Gothic One", "Hiragino Sans", sans-serif;
+  --body: "M PLUS 1", "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #17130f;
+    --ink: #f2ece4;
+    --accent: #e8603c;
+    --on-accent: #17130f;
+    --muted: #a69c90;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  line-height: 1.7;
+}
+a { color: inherit; }
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding-inline: 16px; }
+@media (min-width: 720px) { .wrap { padding-inline: 48px; } }
+
+/* 缶詰のラベルの帯 */
+.band { background: var(--accent); color: var(--on-accent); }
+.band .wrap { display: flex; flex-direction: column; gap: 10px; padding-block: 20px 24px; }
+.band-top {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.2em;
+}
+.band-mark { border-block: 2px solid currentColor; padding-block: 10px 6px; }
+.logo { display: block; width: min(100%, 420px); height: auto; --logo-paper: var(--accent); }
+.band h1 { margin: 0; }
+.lead { margin: 0; font-size: 15px; font-weight: 500; }
+
+/* 作っているもの */
+main { flex: 1 0 auto; }
+/* 本文に URL をそのまま書いている所がある（免責事項のライセンス、#226）。
+   スマホ幅で横にはみ出さないよう、長い語は途中で折り返す */
+main a { overflow-wrap: anywhere; }
+main .wrap { display: flex; flex-direction: column; gap: 20px; padding-block: 28px 40px; }
+.section-label { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.2em; color: var(--accent); }
+.cards { display: flex; flex-wrap: wrap; gap: 20px; margin: 0; padding: 0; list-style: none; }
+.card {
+  flex: 1 1 320px; min-width: 0;
+  display: flex; flex-direction: column;
+  border: 2px solid var(--ink); border-radius: 14px;
+}
+.card-tag {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 8px 16px; border-bottom: 2px solid var(--ink);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+}
+.card-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.2; }
+.card p { margin: 0; font-size: 15px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; }
+.open {
+  min-height: 44px; padding: 0 20px;
+  display: inline-flex; align-items: center;
+  background: var(--ink); color: var(--ground);
+  border-radius: 999px; font-weight: 700; text-decoration: none;
+}
+.open:hover { background: var(--accent); color: var(--on-accent); }
+.more {
+  min-height: 44px; padding: 0 18px;
+  display: inline-flex; align-items: center;
+  border: 2px solid var(--muted); border-radius: 999px;
+  color: var(--ink); font-size: 14px; font-weight: 700; text-decoration: none;
+}
+.more:hover { border-color: var(--accent); color: var(--accent); }
+
+footer { border-top: 6px double var(--ink); }
+footer .wrap {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px;
+  padding-block: 18px 24px; font-size: 13px;
+}
+footer ul { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0; padding: 0; list-style: none; }
+.copy { color: var(--muted); }
+
+/* ===== 紹介ページ（#155）。/about/hamakokuex・/about/hamakokumap ===== */
+
+/* 帯はインデックスと同じ作りだが、アプリ名が主役なので小さめに */
+.band-top a { color: inherit; text-decoration: none; font-weight: 700; }
+.band-top a:hover { text-decoration: underline; }
+.about-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(30px, 8vw, 46px); line-height: 1.15; }
+.about-sub { margin: 0; font-size: 15px; font-weight: 500; }
+
+/* 本文。読み物なので幅を絞る */
+.prose { width: 100%; max-width: 720px; }
+.prose h2 {
+  margin: 28px 0 10px; font-size: 20px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--ink);
+}
+.prose h3 { margin: 20px 0 4px; font-size: 16px; }
+.prose p, .prose li { font-size: 15px; }
+.prose ul { margin: 8px 0; padding-left: 1.3em; }
+.prose li { margin: 2px 0; }
+.prose dl { margin: 8px 0; }
+.prose dt { font-weight: 700; margin-top: 12px; }
+.prose dd { margin: 2px 0 0; }
+
+/* スクリーンショット。縦長（スマホ）と横長（地図）で置き方を変える */
+figure { margin: 16px 0; }
+figure img { display: block; width: 100%; height: auto; border: 2px solid var(--ink); border-radius: 10px; }
+figure.shot-phone { max-width: 300px; }
+figcaption { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+/* ページの先頭と末尾に置く、本体への導線 */
+.jump { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; }
+.jump .note { font-size: 13px; color: var(--muted); }
+.back { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
+
+/* 出典。小さく、でも読める大きさで */
+.sources { font-size: 14px; }
+.sources li { margin: 6px 0; }

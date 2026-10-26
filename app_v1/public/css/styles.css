@@ -1,0 +1,3069 @@
+/* ===========================================================================
+   デザイントークン
+   値の出どころは ADR-0011（色・罫線・地紋）と ADR-0017（書体・文字の大きさ）。
+   docs/adr/0011-two-color-print.md / docs/adr/0017-typefaces.md
+   見た目を変えるときは、まずここを直す。各所への直書きは増やさない。
+   =========================================================================== */
+:root {
+    /* --- 色（ADR-0011）-------------------------------------------------
+       白い紙に青インクで刷り、例外だけ赤で足す「2色刷り」。
+       赤は遅れと満車にだけ使う。データが取れないときは弱い文字で書く。 */
+    --ink: #1F4E9C;          /* 文字・罫線・手段の帯・選んだボタンの塗り */
+    --red: #C8322B;          /* 遅れ（印・区間の線・見込み時刻）と満車だけ */
+    --muted: #5B6B85;        /* 注記、徒歩の点線、「—」 */
+    --ticket-bg: #E9F0FB;    /* 案内券の地。斜めの地紋を重ねる */
+    --field-bg: #EEF3FB;     /* 申込書の項目名の列、「現在」ボタン、固定の欄 */
+    --selected-bg: #C9D8F0;  /* 選んだ出発地のアイコン欄 */
+    --paper: #FFFFFF;        /* 背景、電車の縞の明るい側 */
+    --machine-bg: #F4F7FC;   /* 券売機の背景のみ */
+    --on-ink: #FFFFFF;       /* インクで塗ったボタンや帯の上の文字 */
+    --ticket-selected-bg: #DCE7F7; /* PC の選んだ行・切符 */
+    --rule-weak-color: #A9B8D0;    /* 弱い区切り線 */
+    --tick: #D5DDEA;               /* ダイヤ図の10分ごとの縦線 */
+    --tint-color: rgba(31, 78, 156, 0.07); /* 地紋の線 */
+
+    /* 白地に対するコントラストは、インク・赤・弱い文字のどれも 4.5:1 以上 */
+
+    /* --- 書体（ADR-0017）----------------------------------------------- */
+    --font-serif: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --font-sans: "BIZ UDPGothic", "Hiragino Sans", "Meiryo", sans-serif;
+
+    /* --- 文字の大きさ（ADR-0017）---------------------------------------
+       13px 以上は明朝、12px 以下はゴシック。10px を下回らない。 */
+    --size-time-lg: 32px;    /* 案内券の発着時刻（スマホ） */
+    --size-time-xl: 44px;    /* 同（PC の詳細） */
+    --size-route-sm: 21px;   /* 経路図の時刻（スマホ） */
+    --size-route-md: 26px;   /* 同（PC） */
+    --size-heading: 22px;
+    --size-body: 15px;
+    --size-small: 13px;      /* ここまでが明朝 */
+    --size-note: 12px;       /* ここから下はゴシック */
+    --size-min: 10px;        /* 下限 */
+
+    /* --- 罫線（ADR-0011）----------------------------------------------- */
+    --rule-strong: 2px solid var(--ink);   /* 外枠と見出しの下 */
+    --rule: 1px solid var(--ink);          /* 項目の区切り */
+    --rule-dotted: 1px dotted var(--muted);/* 項目の中の区切り */
+    --rule-dashed: 1px dashed var(--ink);  /* 切符の中の区切り */
+
+    /* --- 地紋（ADR-0011）-----------------------------------------------
+       135度の斜線を 8px おきに、インクを 7% に薄めて引く */
+    --tint: repeating-linear-gradient(
+        135deg,
+        var(--tint-color) 0 1px,
+        transparent 1px 8px
+    );
+
+    /* --- 余白 ----------------------------------------------------------
+       既存の値（4/8/10/15/20px）を4段階に整理した */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 20px;
+
+    /* 入力欄・スクロールバーなどブラウザが描く部品の明暗 */
+    color-scheme: light;
+
+    /* --- 操作できるものの最小の高さ（デザイン指南書「押せる大きさ」）--- */
+    --tap-min: 44px;
+}
+
+/* ===========================================================================
+   ダークモード「夜の紙」（ADR-0022 / ダークモード指南書）
+   白い紙を濃紺の紙に、青インクを青白のインクに入れ替える。
+   変えるのは色だけ。形・書体・罫線・模様・言葉はそのまま。
+
+   取りやめるときは、この @media ブロックごと消す。それだけで元に戻る。
+     （ライト側の値は :root にあり、ここは上書きしかしていない）
+   =========================================================================== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* 入力欄・スクロールバーなどをブラウザ側も暗く描かせる */
+        color-scheme: dark;
+
+        --paper: #0F1A2E;
+        --ink: #CFDDF5;
+        --on-ink: #0F1A2E;          /* 塗りの上は暗い文字にする */
+        --red: #FF7A6B;
+        --muted: #8E9DB8;
+        --ticket-bg: #18263F;
+        --ticket-selected-bg: #22375A;
+        --field-bg: #1C2B45;
+        --selected-bg: #34507F;
+        --machine-bg: #0B1424;
+        --tick: #2A3A57;
+        --rule-weak-color: #3A4B69;
+        --tint-color: rgba(207, 221, 245, 0.06);
+    }
+
+    /* 明朝の細い線は暗い地の上で痩せるので、一段太くする
+       （指南書「若干見づらい」への対処。実機で確かめてから最終決定） */
+    body {
+        font-weight: 500;
+    }
+
+    /* 入力欄: 指定しないとブラウザ既定の白地になる */
+    input, select, textarea {
+        background-color: transparent;
+        color: var(--ink);
+    }
+
+    /* リンク: ブラウザ既定の青や暗い色に戻らないように */
+    a {
+        color: var(--ink);
+    }
+}
+
+/* ===========================================================================
+   お知らせ（掲示板 / #137）
+   駅の掲示板に貼った紙。見出し「お知らせ」の下に、日付と本文を1件ずつ並べる。
+   中身は config/notice.js。赤は「いつもと違うこと」のお知らせだけ（ADR-0011）
+   =========================================================================== */
+.notice-board {
+    margin: 0 0 var(--space-md);
+    border: var(--rule);
+    background: var(--paper);
+}
+
+.notice-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px var(--space-md);
+    border-bottom: var(--rule);
+    background: var(--field-bg);
+}
+
+.notice-title {
+    margin: 0;
+    font-size: var(--size-small);
+    letter-spacing: 0.3em;
+}
+
+.notice-order {
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    color: var(--muted);
+}
+
+.notice-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.notice-item {
+    display: grid;
+    grid-template-columns: 3.4em 1fr;
+    gap: var(--space-sm);
+    padding: 6px var(--space-md);
+    font-size: var(--size-small);
+    line-height: 1.6;
+}
+
+.notice-item + .notice-item,
+.notice-more .notice-list {
+    border-top: var(--rule-dotted);
+}
+
+.notice-item time {
+    padding-top: 2px;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 経路が出ない・使えないなど、いつもと違うお知らせ */
+.notice-item.is-alert {
+    color: var(--red);
+}
+
+.notice-item.is-alert time {
+    color: var(--red);
+    font-weight: bold;
+}
+
+/* 「ほか N 件」。その場で開く */
+.notice-more summary {
+    padding: 4px var(--space-md) 6px;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    text-align: right;
+    text-decoration: underline;
+    cursor: pointer;
+    list-style: none;
+}
+
+.notice-more summary::-webkit-details-marker {
+    display: none;
+}
+
+.notice-more[open] summary {
+    display: none;
+}
+
+.notice-more summary:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: -2px;
+}
+
+/* 1. 全体のリセットと基本設定 */
+body {
+    font-family: var(--font-serif);
+    margin: 0;
+    padding: 0;
+    background-color: var(--paper);
+    /* ADR-0011: 文字はインク。指定しないとブラウザ既定の黒／白になる */
+    color: var(--ink);
+}
+
+/* 2. ヘッダーとフォーム */
+header {
+    background-color: var(--ink);
+    color: var(--on-ink); /* インクの塗りの上（ダークでは暗い文字になる） */
+    padding: 12px 10px;
+    text-align: center;
+}
+
+/* ダーク: インクで塗ると画面でいちばん明るい面になるので、記入欄の地にして罫線で区切る（ADR-0022） */
+@media (prefers-color-scheme: dark) {
+    header {
+        background-color: var(--field-bg);
+        color: var(--ink);
+        border-bottom: var(--rule-strong);
+    }
+}
+
+header h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+}
+
+/* ヘッダーのワードマーク（ロゴ H2-3）。字の大きさではなく幅で決める。
+   横長なので帯の幅に収め、狭い画面では画面幅に合わせて縮める。
+   字が読める大きさを優先し、スマホでは帯いっぱい（両脇に余白が少し残る程度）にする */
+header h1 .site-wordmark {
+    display: block;
+    width: min(100%, 320px);
+    height: auto;
+    margin: 0 auto;
+}
+
+/* PC は元の大きさ（360px）まで */
+@media (min-width: 768px) {
+    header h1 .site-wordmark {
+        width: 360px;
+    }
+}
+
+header h2, 
+header p.subtitle {
+    font-size: 13px;
+    margin: 0;
+    font-weight: normal;
+    opacity: 0.9;
+}
+
+main {
+    padding: 0 10px;
+}
+
+@media (min-width: 768px) {
+    main {
+        max-width: 800px;
+        margin: 20px auto;
+    }
+}
+
+select, input[type="text"], input[type="date"], input[type="time"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--muted);
+    box-sizing: border-box;
+    /* ADR-0011: 角丸は使わない（border-radius: 4px;） */
+}
+
+/* 経路を調整の下の「7枚目以降の便は…」（#231）。再案内のボタンに貼り付いて見えたので、
+   ボタンと同じ左右の余白をとり、ボタンとのあいだを空ける。
+   あとに出てくる .note の margin に負けないよう、.note と重ねて指定する */
+.note.adjust-more-note {
+    margin: var(--space-md) var(--space-sm) var(--space-md);
+}
+
+#search-button {
+    width: calc(100% - var(--space-sm) * 2);
+    margin: 0 var(--space-sm) var(--space-sm);
+    min-height: var(--tap-min);
+    padding: var(--space-md);
+    background-color: var(--ink);
+    color: var(--on-ink); /* インクの塗りの上（ダークでは暗い文字になる） */
+    border: none;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    /* ADR-0011: 角丸は使わない（border-radius: 4px;） */
+    transition: background-color 0.3s;
+}
+
+#search-button:hover {
+    background-color: var(--ink);
+}
+
+/* ===========================================================================
+   3. 案内券（検索結果 / ADR-0012・0014・0015・0019）
+   結果1件 = 案内券1枚。閉じた状態で並び、タップした1枚だけがその場で開く。
+   予定（券に刷られたもの）は青インク、いまの状況（遅れ）だけ赤を重ねる。
+   =========================================================================== */
+
+.tickets {
+    margin-bottom: var(--space-lg);
+}
+
+.tickets-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-md);
+    border-bottom: var(--rule-strong);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+/* 見出しの上の「図書館前 発　ふつうの速さ」（画面サンプル）*/
+.tickets-cond {
+    margin: 0 0 2px;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+.tickets-title {
+    margin: 0;
+    font-size: var(--size-heading);
+    letter-spacing: 0.08em;
+}
+
+.tickets-meta {
+    margin: 0;
+    text-align: right;
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-note);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- データの時点（#220）--- */
+details.legend-times summary {
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-weight: bold;
+    letter-spacing: 0.3em;
+}
+
+.data-times {
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-note);
+    color: var(--muted);
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px var(--space-md);
+    margin: 4px 0 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.data-times-row {
+    display: contents;
+}
+
+:root[data-output="wide"] .legend-times--static {
+    display: none; /* 広い画面では、ダイヤ図の凡例の下に React 側が出す */
+}
+
+.data-times dd {
+    margin: 0;
+}
+
+/* --- 券1枚 ------------------------------------------------------------ */
+.ticket {
+    position: relative;
+    margin-bottom: var(--space-md);
+    border: var(--rule-strong);
+    background-color: var(--ticket-bg);
+    background-image: var(--tint); /* 地紋: 135度の斜線を8pxおき */
+    overflow: hidden; /* 地紋と帯が券の外にはみ出さないように */
+}
+
+/* 券の面。全体がボタン（デザイン指南書「押せる大きさ」）*/
+.ticket-face {
+    display: block;
+    padding: var(--space-md) var(--space-sm);
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ticket-face::-webkit-details-marker {
+    display: none;
+}
+
+.ticket-face:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: -4px;
+}
+
+/* 1. 番号と路線名 */
+.ticket-lines {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.ticket-no {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: var(--rule);
+    border-radius: 50%; /* ADR-0011: 丸は番号と選択の印だけ */
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-weight: bold;
+}
+
+.ticket-line {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 1px 6px;
+    border: var(--rule); /* 路線名は枠で囲んだ札にする（画面サンプル）*/
+    font-size: var(--size-small);
+    font-weight: bold;
+    /* 「シェアサイクル」のような1語を途中で折らない。幅が足りないときは
+       札ごと次の行に送る（.diagram-lines は flex-wrap: wrap）*/
+    word-break: keep-all;
+}
+
+/* 遅れている路線は、札の名前と枠だけ赤（ADR-0019）。券の外枠は青のまま */
+.ticket-line.is-delayed {
+    border-color: var(--red);
+    color: var(--red);
+}
+
+.ticket-line-sep {
+    color: var(--muted);
+}
+
+/* 2. 発着時刻。券の中で一番大きい（ADR-0019）*/
+.ticket-times {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin: 0 0 var(--space-xs);
+}
+
+.ticket-time {
+    font-size: var(--size-time-lg);
+    font-weight: bold;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums; /* ADR-0017: 数字は桁幅をそろえる */
+}
+
+.ticket-time-lbl {
+    font-size: var(--size-small);
+}
+
+.ticket-time-arrow {
+    font-size: var(--size-body);
+    color: var(--muted);
+}
+
+/* 3. 見込み（遅れがあるときだけ）*/
+.ticket-estimate {
+    margin: 0 0 var(--space-sm);
+    color: var(--red);
+    font-size: var(--size-small);
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 4. 所要｜乗換｜運賃 */
+.ticket-figures {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: var(--space-sm) 0 0;
+    border-top: var(--rule-dashed); /* 券の中の区切りは破線 */
+    border-bottom: var(--rule-dashed);
+}
+
+.ticket-figures > div {
+    padding: var(--space-xs) 0;
+    text-align: center;
+}
+
+.ticket-figures > div + div {
+    border-left: var(--rule-dotted);
+}
+
+.ticket-figures dt {
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    color: var(--muted);
+}
+
+.ticket-figures dd {
+    margin: 2px 0 0;
+    font-size: var(--size-body);
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.ticket-figures dd.is-delayed {
+    color: var(--red);
+}
+
+/* 5. シェアサイクルの台数 */
+/* シェアサイクルの貸出・返却（#47）。借りる場所と返す場所を行で分け、
+   ラベル・場所・数を縦にそろえて、どこで借りてどこに返すか一目で読めるようにする */
+.ticket-cycle {
+    margin: var(--space-sm) 0 0;
+    font-size: var(--size-small);
+    font-variant-numeric: tabular-nums;
+}
+
+.ticket-cycle-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.ticket-cycle-row dt {
+    flex: none;
+    width: 3.2em;              /* 「借りる」「返す」の頭をそろえる */
+    color: var(--muted);
+    font-size: var(--size-note);
+}
+
+.ticket-cycle-row dd {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;              /* 長い場所の名前で親を押し広げない */
+    margin: 0;
+}
+
+/* 場所の名前が主役。長ければここだけ省略する */
+.ticket-cycle-place {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ticket-cycle-num {
+    flex: none;
+    margin-left: auto;         /* 数は右端にそろえる */
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+/* 0台・満車は赤枠の文字。色だけに意味を載せない（ADR-0011）*/
+.alarm {
+    display: inline-block;
+    padding: 0 4px;
+    border: 1px solid var(--red);
+    color: var(--red);
+    font-weight: bold;
+}
+
+/* 取れなかったものは赤を使わず弱い文字で「—」*/
+.unknown {
+    color: var(--muted);
+}
+
+/* 6. 手段の帯。区間の所要分に比例した長さで横につなぐ */
+.ticket-band {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    height: 10px;
+    margin-top: var(--space-sm);
+}
+
+.band-seg {
+    min-width: 3px;
+}
+
+/* 待ち時間の模様は「交通手段の模様」の節（.is-wait）にまとめてある */
+
+/* --- 開いた状態: 縦の経路図 -------------------------------------------- */
+.ticket-detail {
+    padding: 0 var(--space-sm) var(--space-md);
+    border-top: var(--rule-dashed);
+}
+
+.route-map {
+    padding-top: var(--space-sm);
+}
+
+.map-point,
+.map-head {
+    display: grid;
+    grid-template-columns: 16px 1fr auto;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* 遅れのある券は「見込み」の列を足す */
+.route-map.has-estimate .map-point,
+.route-map.has-estimate .map-head {
+    grid-template-columns: 16px 1fr auto 4.2em;
+}
+
+/* 列の見出し（定刻／見込み） */
+.map-head {
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    color: var(--muted);
+}
+
+.map-head span {
+    text-align: right;
+}
+
+.map-head .map-head-est {
+    color: var(--red);
+}
+
+.map-dot {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: var(--paper);
+    justify-self: center;
+}
+
+/* 出発地は白抜きの丸、途中は塗りの小さい丸、横浜駅は塗りの四角 */
+.map-point:not(.is-start):not(.is-goal) .map-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--ink);
+}
+
+.map-point.is-goal .map-dot {
+    border-radius: 0;
+    background: var(--ink);
+}
+
+.map-name {
+    font-size: var(--size-small);
+    font-weight: bold;
+    min-width: 0;
+    overflow-wrap: anywhere; /* 長い地名でも崩れない */
+}
+
+.map-time,
+.map-est {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 時刻そのものは明朝で大きく（ADR-0017）。「発」「着」は小さく添える */
+.map-t {
+    font-size: var(--size-route-sm);
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.map-lbl {
+    margin-left: 2px;
+    font-size: var(--size-small);
+}
+
+/* 乗換の待ちは、着の時刻と待ち時間を小さく上に書く */
+.map-arr,
+.map-wait {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    color: var(--muted);
+}
+
+.map-est {
+    color: var(--red);
+}
+
+/* 見込みの列では、着の時刻も赤のまま（弱い文字に戻さない）*/
+.map-est .map-arr {
+    color: var(--red);
+}
+
+/* 区間 */
+.map-leg {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: var(--space-sm);
+    align-items: stretch;
+    min-height: 34px;
+    padding: var(--space-xs) 0;
+}
+
+.map-leg .mode--line {
+    width: 8px;
+    justify-self: center;
+}
+
+.map-leg-text {
+    min-width: 0;
+}
+
+.map-leg-title {
+    margin: 0;
+    font-size: var(--size-small);
+    font-weight: bold;
+}
+
+.map-leg-sub,
+.map-leg-fare {
+    margin: 2px 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.map-leg-delay {
+    margin: 2px 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    color: var(--red);
+    font-weight: bold;
+}
+
+.ticket-issued {
+    margin: var(--space-md) 0 0;
+    padding-top: var(--space-sm);
+    border-top: var(--rule-dashed);
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- 0件のとき。版面は崩さず、中身だけ一文に置き換える ------------------ */
+.ticket--empty {
+    padding: var(--space-md) var(--space-sm);
+}
+
+.ticket-empty-text {
+    margin: 0;
+    font-size: var(--size-body);
+    font-weight: bold;
+}
+
+/* --- 仮データの帯（demo/index.js）--------------------------------------- */
+.demo-banner {
+    margin: 0 0 var(--space-md);
+    padding: var(--space-md);
+    border: 3px solid var(--red);
+    background: var(--paper);
+    color: var(--red);
+    text-align: center;
+}
+
+.demo-banner-text {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 1.25rem;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.demo-banner-sub {
+    margin: var(--space-xs) 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+/* --- 凡例 -------------------------------------------------------------- */
+.legend,
+.legend-times {
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: var(--rule);
+}
+
+.legend-title {
+    margin: 0 0 var(--space-xs);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-weight: bold;
+    letter-spacing: 0.3em;
+}
+
+.legend-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.legend-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+/* 「初めから案内し直す」は枠のある大きなボタン（画面サンプル）*/
+.restart {
+    margin: var(--space-md) 0 0;
+}
+
+.restart a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    border: var(--rule-strong);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: var(--size-body);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.restart a:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+/* =========================================================
+   検索中の表示（#60）
+   送信した瞬間に紙を1枚かぶせ、券売機から券が出てくるまでを埋める。
+   回る丸は使わない（丸は選択の印と番号だけ / ADR-0011）。
+   ========================================================= */
+/* display を指定すると [hidden]{display:none} と詳細度が並んで、後に書いた
+   こちらが勝ってしまう。隠れている間は確実に消す */
+.progress[hidden] {
+    display: none;
+}
+
+.progress {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    background-color: var(--paper);
+    background-image: var(--tint); /* 地紋。紙がかぶさったように見せる */
+}
+
+.progress-sheet {
+    width: min(360px, 100%);
+    padding: var(--space-lg) var(--space-md);
+    border: var(--rule-strong);
+    background: var(--paper);
+    text-align: center;
+}
+
+.progress-title {
+    margin: 0 0 var(--space-md);
+    font-size: var(--size-heading);
+    font-weight: bold;
+    letter-spacing: 0.1em;
+}
+
+/* 帯が左から右へ流れる。どこまで進んだかは分からないので、割合は出さない */
+.progress-bar {
+    height: 10px;
+    border: var(--rule);
+    overflow: hidden;
+}
+
+.progress-bar span {
+    display: block;
+    width: 40%;
+    height: 100%;
+    background: var(--ink);
+    animation: progress-slide 1.1s linear infinite;
+}
+
+@keyframes progress-slide {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(250%); }
+}
+
+/* 動きを減らす設定のときは、流さずに帯を置くだけにする */
+@media (prefers-reduced-motion: reduce) {
+    .progress-bar span {
+        width: 100%;
+        animation: none;
+    }
+}
+
+.progress .note {
+    margin-top: var(--space-md);
+}
+
+/* 運賃の IC／現金の切り替え（#97）。結果画面にだけ出る。
+   「歩く速さ」と同じ語彙で、選んでいるほうをインクで塗る（ADR-0011）*/
+.fare-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.fare-toggle-label {
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-note);
+    color: var(--muted);
+    margin-right: var(--space-xs);
+}
+
+/* IC／現金は「入切」ではなく2つの選択なので、両方の名前を残したまま
+   丸いカプセルの中で塗りを左右に滑らせる。
+   ADR-0011 は角丸を使わない決まりだが、歩く速さの○と同じで
+   「選択の印」としてだけ丸を使う（#97・ADR-0003）*/
+.fare-toggle-switch {
+    position: relative;
+    display: flex;
+    border: var(--rule);
+    border-radius: 999px;
+    background: var(--paper);
+    overflow: hidden;
+}
+
+/* 2つの札の境目。塗りが乗っている側では、塗りの縁と重なる */
+.fare-toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    left: 50%;
+    width: 1px;
+    background: var(--ink);
+}
+
+/* 選んだほうを塗る「塩」。幅はちょうど半分 */
+.fare-toggle-thumb {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 50%;
+    border-radius: 999px;
+    background: var(--ink);
+}
+
+/* 読み込んだ瞬間に滑ると目障りなので、最初の描画のあとから動かす */
+.fare-toggle-switch.is-ready .fare-toggle-thumb {
+    transition: transform 150ms ease;
+}
+
+:root[data-fare-type="cash"] .fare-toggle-thumb {
+    transform: translateX(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fare-toggle-switch.is-ready .fare-toggle-thumb { transition: none; }
+}
+
+.fare-toggle-btn {
+    position: relative; /* 塗りより前に出す */
+    flex: 1 1 0;
+    min-height: var(--tap-min);
+    min-width: 4em;
+    padding: var(--space-xs) var(--space-sm);
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fare-toggle-btn[aria-pressed="true"] {
+    color: var(--on-ink);
+    font-weight: bold;
+}
+
+.fare-toggle-btn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 999px;
+}
+
+/* 読み上げだけに出す文字 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.error-alert {
+    border: 2px solid var(--red);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    color: var(--red);
+}
+
+.error-alert ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+}
+
+/* =========================================================
+   ダイヤ図（PC・タブレットの出力 / ADR-0013・0021）
+   上に6件のダイヤ図、下左に選んだ便の詳細、下右に経路を調整。
+   ========================================================= */
+
+/* 広い画面では案内券6枚を隠し、ダイヤ図に置き換える。
+   0件のときの知らせは、ダイヤ図が描けないので残す */
+:root[data-output="wide"] #route-results > .ticket:not(.ticket--empty),
+:root[data-output="wide"] #route-results > .legend {
+    display: none; /* 凡例はダイヤ図の枠の下に出す */
+}
+
+:root[data-output="wide"] main,
+:root[data-input="wide"] main {
+    /* 券売機とダイヤ図は横に3つ並べる作りなので、本文の幅を広げる */
+    max-width: 1200px;
+}
+
+:root[data-output="wide"] main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22em;
+    gap: 0 var(--space-md);
+    align-items: start;
+}
+
+/* 既定は横いっぱい。詳細と経路を調整だけ左右に分ける */
+:root[data-output="wide"] main > * {
+    grid-column: 1 / -1;
+}
+
+/* 島は包み箱ごとグリッドに参加させる（中の2つを別の行に置くため）*/
+:root[data-output="wide"] #diagram-island {
+    display: contents;
+}
+
+:root[data-output="wide"] .diagram {
+    grid-column: 1 / -1;
+}
+
+:root[data-output="wide"] .diagram-detail {
+    grid-column: 1;
+}
+
+:root[data-output="wide"] main > form {
+    grid-column: 2;
+}
+
+/* --- ダイヤ図 --- */
+.diagram {
+    position: relative;
+    margin-bottom: var(--space-md);
+    border: var(--rule-strong);
+    background: var(--paper);
+    font-size: var(--size-body); /* 中の em をそろえる基準 */
+    /* 行の左の見出しの幅。目盛りと「現在」の線をトラックに合わせるのに使う */
+    --label-w: 15em;
+    --track-gap: var(--space-sm);
+    /* 右端は「+6分」の添え字のぶん空けておく */
+    --track-end: 3em;
+}
+
+/* 見出し「ダイヤ図」と使い方の一文 */
+.diagram-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-xs) var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: var(--rule-strong);
+}
+
+.diagram-title {
+    margin: 0;
+    font-size: var(--size-heading);
+    letter-spacing: 0.15em;
+}
+
+.diagram-help {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+.diagram-scale {
+    position: relative;
+    height: 1.6em;
+    margin-left: calc(var(--label-w) + var(--track-gap) + var(--space-sm));
+    margin-right: calc(var(--track-end) + var(--space-sm));
+    margin-top: var(--space-xs);
+}
+
+.diagram-tick {
+    position: absolute;
+    transform: translateX(-50%);
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-min);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.diagram-rows {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.diagram-row {
+    display: grid;
+    grid-template-columns: var(--label-w) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--track-gap);
+    width: 100%;
+    min-height: 64px;
+    padding: var(--space-xs) calc(var(--track-end) + var(--space-sm)) var(--space-xs) var(--space-sm);
+    border: 0;
+    border-top: var(--rule-dotted);
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    /* ボタンは既定で文字が小さく、em で決めた見出しの幅が目盛りとずれるので本文の大きさにそろえる */
+    font-size: var(--size-body);
+    text-align: left;
+    cursor: pointer;
+}
+
+.diagram-row.is-selected {
+    background: var(--ticket-selected-bg);
+}
+
+.diagram-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+/* 番号と路線名の札（案内券と同じ札）*/
+.diagram-lines {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* 札の下の「14:30 → 14:58」*/
+.diagram-times {
+    font-size: var(--size-small);
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.diagram-track {
+    position: relative;
+    display: block;
+    height: 18px;
+}
+
+/* 10分ごとの縦線 */
+.diagram-gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--tick);
+}
+
+.diagram-band {
+    position: absolute;
+    top: 4px;
+    height: 10px;
+    min-width: 2px;
+}
+
+
+
+/* 遅れで到着が延びる分（ADR-0021）*/
+.diagram-extra {
+    position: absolute;
+    top: 4px;
+    height: 10px;
+    min-width: 2px;
+    border: 1px dashed var(--red);
+    background: repeating-linear-gradient(
+        135deg,
+        var(--red) 0 1px,
+        transparent 1px 5px
+    );
+}
+
+.diagram-extra-label {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    padding-left: 2px;
+    color: var(--red);
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.diagram-estimate {
+    color: var(--red);
+}
+
+/* 凡例。図の枠の下に置く */
+.diagram-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-md);
+    margin: 0;
+    padding: var(--space-sm) var(--space-md);
+    border-top: var(--rule);
+    list-style: none;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+.diagram-legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.diagram-legend li.is-delayed {
+    color: var(--red);
+    font-weight: bold;
+}
+
+.diagram-legend-extra {
+    width: 20px;
+    height: 10px;
+    border: 1px dashed var(--red);
+    background: repeating-linear-gradient(135deg, var(--red) 0 1px, transparent 1px 5px);
+}
+
+.diagram-legend-note {
+    color: var(--muted);
+}
+
+/* 「現在」の位置に縦の破線 */
+.diagram-now {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px dashed var(--ink);
+    pointer-events: none;
+}
+
+.diagram-now-label {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    padding: 0 3px;
+    background: var(--ink);
+    color: var(--on-ink);
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    white-space: nowrap;
+}
+
+/* 「現在」の線は、行の中のトラックに合わせて置く */
+.diagram-now-wrap {
+    position: absolute;
+    inset: 0;
+    margin-left: calc(var(--label-w) + var(--track-gap) + var(--space-sm));
+    margin-right: calc(var(--track-end) + var(--space-sm));
+    pointer-events: none;
+}
+
+/* --- 下左: 選んだ便の詳細。発着時刻を大きくする（ADR-0021）--- */
+.ticket--large .ticket-time {
+    font-size: var(--size-time-xl);
+}
+
+.ticket--large .map-t {
+    font-size: var(--size-route-md);
+}
+
+
+.ticket--large .ticket-face {
+    cursor: default;
+}
+
+/* =========================================================
+   券売機方式（PC・タブレットの入力 / ADR-0013・0024）
+   1画面1問。左に手順の一覧、中央に質問と大きなボタン、
+   右に発券される案内券の見本。幅が足りないときは見本が下に回る。
+   ========================================================= */
+
+/* 券売機を出しているときは、経路申込書は隠す（値は input が持ったまま）*/
+:root[data-input="wide"] #search-form {
+    display: none;
+}
+
+/* 券売機を出しているときは、サイトのヘッダーの代わりに券売機の帯を出し、
+   背景を券売機の地にする（画面サンプル・ADR-0011「背景を変えるのは券売機だけ」）*/
+:root[data-input="wide"] body {
+    background: var(--machine-bg);
+}
+
+:root[data-input="wide"] body > header {
+    display: none;
+}
+
+:root[data-input="wide"] main {
+    margin-top: 0;
+}
+
+.machine {
+    margin-bottom: var(--space-lg);
+}
+
+/* 上の帯「横浜駅への最短ルートを検索」 */
+.machine-band {
+    /* 文字は本文の幅にそろえたまま、塗りだけ画面の端まで伸ばす（画面サンプル）*/
+    box-shadow: 0 0 0 100vmax var(--ink);
+    clip-path: inset(0 -100vmax);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm) var(--space-lg);
+    margin-bottom: 28px;
+    padding: 18px var(--space-lg);
+    background: var(--ink);
+    color: var(--on-ink);
+}
+
+/* ダーク: ヘッダーと同じく、インクで塗ると画面でいちばん明るい面になるので記入欄の地にする */
+@media (prefers-color-scheme: dark) {
+    .machine-band {
+        background: var(--field-bg);
+        color: var(--ink);
+        box-shadow: 0 0 0 100vmax var(--field-bg);
+        border-top: var(--rule-strong);
+        border-bottom: var(--rule-strong);
+    }
+}
+
+.machine-title {
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: 0.12em;
+}
+
+.machine-brand {
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+.machine-body {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+/* --- 左: 手順の一覧 --- */
+.machine-steps ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: var(--rule-strong);
+    background: var(--paper);
+}
+
+.machine-step {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    align-items: center;
+    gap: 2px 10px;
+    width: 100%;
+    min-height: 64px;
+    padding: var(--space-sm) var(--space-md);
+    border: 0;
+    border-bottom: var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.machine-steps li:last-child .machine-step {
+    border-bottom: 0;
+}
+
+/* 今の手順はインクで塗る */
+.machine-step[aria-current="step"] {
+    background: var(--ink);
+    color: var(--on-ink);
+}
+
+.machine-step:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+/* 番号は丸数字（ADR-0011: 丸は番号の印に使ってよい）*/
+.machine-step-no {
+    grid-row: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    font-size: var(--size-small);
+    font-weight: bold;
+}
+
+.machine-step-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.machine-step-value {
+    grid-column: 2;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    opacity: 0.85;
+    overflow-wrap: anywhere;
+}
+
+/* --- 中央: 質問と大きなボタン --- */
+.machine-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.machine-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding-bottom: 14px;
+    border-bottom: var(--rule-strong);
+}
+
+.machine-count {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-weight: bold;
+}
+
+.machine-question {
+    margin: 0;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.machine-help {
+    margin: 0;
+    font-size: var(--size-body);
+    line-height: 1.8;
+}
+
+.machine-choices {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.machine-choices--when { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.machine-choices--tall { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.machine-choices--modes { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+/* 選択肢のボタン。選んだものはインクで塗る（デザイン指南書「表記の語彙」）*/
+.machine-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    border: var(--rule-strong);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.machine-btn--when {
+    height: 92px;
+    font-size: 22px;
+}
+
+.machine-btn--tall {
+    flex-direction: column;
+    gap: 10px;
+    height: 120px;
+    font-size: 22px;
+}
+
+.machine-btn--mode {
+    justify-content: flex-start;
+    gap: 12px;
+    height: 96px;
+    padding: 0 16px;
+    font-size: 21px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.machine-btn[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--on-ink);
+}
+
+/* 券売機の「乗り物」: 手段のボタンの下に、その事業者を小さく並べる（#96・ADR-0029）*/
+.machine-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.machine-operators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 16px;
+}
+
+.machine-op {
+    min-height: var(--tap-min);
+    padding: 0 12px;
+    border: var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: var(--size-small);
+    cursor: pointer;
+}
+
+.machine-op[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--on-ink);
+}
+
+/* 手段を外しているあいだは押せない。チェックは残るので手段を戻せば元に戻る。
+   インクの塗りのままだと、徒歩のみを選んでも事業者が選ばれて見えるので、
+   塗りをやめて薄い下地と薄い文字にする */
+.machine-op:disabled {
+    border-color: var(--muted);
+    background: var(--paper);
+    color: var(--muted);
+    cursor: default;
+}
+
+/* 使う側だった事業者は、薄い下地だけ残して「戻せば選ばれている」ことを示す */
+.machine-op:disabled[aria-pressed="true"] {
+    background: var(--selected-bg);
+}
+
+.machine-btn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+}
+
+/* 塗ったボタンの上では、模様も紙の色で抜く */
+.machine-btn[aria-pressed="true"] .mode {
+    --mode-ink: var(--on-ink);
+}
+
+.machine-btn[aria-pressed="true"] .icon-slot {
+    border-color: var(--on-ink);
+}
+
+/* 乗り物の□に✓ */
+.machine-check {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 2px solid currentColor;
+    font-size: 20px;
+}
+
+/* 出発地・速さのアイコンの置き場所（大きいほう）*/
+.icon-slot--lg {
+    width: 44px;
+    height: 44px;
+    border: 1.5px dashed currentColor;
+}
+
+/* 時刻の手順。申込書と同じ「〇分後」と「日時を指定」の欄を、券売機の大きさで出す */
+.machine-time {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.relative-minutes--lg .digit-box {
+    width: 64px;
+    height: 84px;
+    border: var(--rule-strong);
+    font-size: 52px;
+}
+
+.relative-minutes--lg .min-label {
+    padding-bottom: 8px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.relative-minutes--lg .minutes-wrapper {
+    gap: 8px;
+    margin-bottom: var(--space-md);
+}
+
+.relative-minutes--lg .quick-buttons {
+    max-width: 560px;
+    border: var(--rule-strong);
+}
+
+.relative-minutes--lg .quick-btn {
+    min-height: 72px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.relative-minutes--lg .quick-btn + .quick-btn {
+    border-left: var(--rule-strong);
+}
+
+/* 券売機の「〇限終わり」（#164）。上の「今すぐ・+1分…」と同じ大きさにそろえる */
+.period-buttons--lg {
+    margin-top: 0;
+}
+
+.period-buttons--lg .period-buttons-lbl {
+    font-size: var(--size-body);
+    font-weight: bold;
+}
+
+.period-buttons--lg .period-buttons-row {
+    max-width: 560px;
+    border: var(--rule-strong);
+}
+
+.period-buttons--lg .quick-btn {
+    min-height: 72px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.period-buttons--lg .quick-btn + .quick-btn {
+    border-left: var(--rule-strong);
+}
+
+.period-buttons--lg .period-btn-time {
+    font-size: 16px;
+    font-weight: normal;
+}
+
+.date-boxes--lg {
+    gap: var(--space-sm);
+}
+
+.date-boxes--lg .date-box {
+    gap: 6px;
+    margin-right: var(--space-sm);
+}
+
+.date-boxes--lg .date-box input {
+    width: 76px;
+    height: 76px;
+    border: var(--rule-strong);
+    font-size: 40px;
+}
+
+.date-boxes--lg .date-box span {
+    padding-bottom: 8px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.machine-submit {
+    width: 100%;
+    min-height: 76px;
+    border: 0;
+    background: var(--ink);
+    color: var(--on-ink);
+    font-family: inherit;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+}
+
+/* --- 下: 取消・戻る・次へ --- */
+.machine-controls {
+    display: flex;
+    gap: 10px;
+    padding-top: var(--space-sm);
+}
+
+.machine-ctl {
+    flex: 0 0 120px;
+    height: 60px;
+    border: var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.machine-ctl:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.machine-ctl--next {
+    flex: 0 0 220px;
+    margin-left: auto;
+    border: var(--rule-strong);
+    font-size: 19px;
+    font-weight: bold;
+}
+
+/* --- 発券される案内券の見本 ---
+   1024px からは右の列に置く（.machine-sample--side）。
+   それより狭いタブレットでは、確認の手順で発券ボタンの上に置く（.machine-sample--inline）。
+   下に回すと質問の列と左がそろわず、どの手順でも出ていて邪魔なため */
+.machine-sample {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.machine-sample--side {
+    display: none;
+}
+
+.machine-sample--inline {
+    margin-bottom: var(--space-md);
+}
+
+.machine-sample-cap {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-weight: bold;
+}
+
+.ticket--sample {
+    border: var(--rule);
+}
+
+.ticket--sample .ticket-face {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: 16px 18px 12px;
+    cursor: default;
+}
+
+.sample-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0;
+}
+
+.sample-name {
+    font-size: 19px;
+    font-weight: bold;
+    letter-spacing: 0.4em;
+}
+
+.sample-brand {
+    font-family: var(--font-sans);
+    font-size: 11px;
+}
+
+.sample-route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+}
+
+.sample-arrow {
+    font-size: 18px;
+    letter-spacing: 0;
+}
+
+.sample-list {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    row-gap: var(--space-sm);
+    align-items: baseline;
+    margin: 0;
+}
+
+.sample-list dt {
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+.sample-list dd {
+    margin: 0;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.sample-list dd:first-of-type {
+    font-weight: 600;
+}
+
+.sample-foot {
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    padding-top: var(--space-sm);
+    border-top: var(--rule-dashed);
+    font-family: var(--font-sans);
+    font-size: 11px;
+}
+
+/* 1024px から、見本を右に並べる（ADR-0024）*/
+@media (min-width: 1024px) {
+    .machine-body {
+        grid-template-columns: 220px minmax(0, 1fr) minmax(260px, 340px);
+    }
+
+    .machine-sample--side {
+        display: flex;
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .machine-sample--inline {
+        display: none;
+    }
+}
+
+/* --- 経路を調整（結果画面の入力 / ADR-0020）---------------------------
+   スマホでは普段は閉じ、見出しに今の条件を1行で出す。
+   PC・タブレットの幅では開いたままにする（ADR-0024・末尾のスクリプト）*/
+.adjust {
+    margin-bottom: var(--space-md);
+}
+
+.adjust-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: var(--tap-min);
+    padding: var(--space-sm) var(--space-md);
+    border: var(--rule-strong);
+    background: var(--field-bg);
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.adjust-head::-webkit-details-marker {
+    display: none;
+}
+
+.adjust-head:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: -4px;
+}
+
+.adjust-title {
+    font-size: var(--size-body);
+    font-weight: bold;
+}
+
+/* 今の条件の1行。長くなるので折り返してよい */
+.receipt-line {
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-note);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 開いたとき、用紙は見出しの続きとして上の罫線を省く */
+.adjust[open] .form-sheet {
+    border-top: 0;
+}
+
+/* 経路を調整の「出発 14:28（現在）」*/
+.adjust-time {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
+    margin: 0;
+    font-size: var(--size-small);
+}
+
+.adjust-time-value {
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 出発時刻をずらすボタン（−5・−1・現在・+1・+5）*/
+.shift-buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin-top: var(--space-sm);
+    border: var(--rule);
+}
+
+/* 真ん中の「現在」だけ記入欄の地で塗る（画面サンプル）*/
+.shift-buttons .quick-btn:nth-child(3) {
+    background: var(--field-bg);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-weight: bold;
+}
+
+/* =========================================================
+   5. 経路申込書（スマホの入力画面 / ADR-0013）
+   項目名の列 ＋ 記入欄の2列。罫線で区切り、飾りは付けない。
+   ========================================================= */
+
+.form-sheet {
+    border: var(--rule-strong);
+    background: var(--paper);
+    padding: 0;
+}
+
+/* --- 見出し（経路申込書 / 行き先 横浜駅）--- */
+.sheet-head {
+    border-bottom: var(--rule-strong);
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+}
+
+.sheet-title {
+    margin: 0;
+    font-size: var(--size-heading);
+    letter-spacing: 0.08em;
+}
+
+/* --- 項目の行。左が項目名の列、右が記入欄 --- */
+.sheet-row {
+    display: grid;
+    grid-template-columns: 5.5em 1fr;
+    border-bottom: var(--rule);
+}
+
+.sheet-row-label {
+    display: flex;
+    align-items: center; /* 項目名は列の中で上下中央（画面サンプル）*/
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-md) var(--space-sm);
+    border-right: var(--rule);
+    background: var(--field-bg);
+    font-family: var(--font-sans); /* ADR-0017: 項目名はゴシック */
+    font-size: var(--size-note);
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.sheet-row-body {
+    padding: var(--space-md) var(--space-sm);
+    min-width: 0; /* grid の子がはみ出さないように */
+}
+
+/* 項目の中の区切り（出発地と到着の間など） */
+.choice {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+/* 申込書の書き方の案内（見出しの下の1行）*/
+.sheet-instruction {
+    margin: 0;
+    padding: var(--space-xs) var(--space-md);
+    border-bottom: var(--rule);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+}
+
+/* 区間: 「出発 → 到着（固定）」の2つの枠（画面サンプル）*/
+.segment {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+    align-items: stretch;
+    margin-bottom: var(--space-sm);
+}
+
+.segment-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: var(--space-xs) var(--space-sm) var(--space-sm);
+    border: var(--rule);
+}
+
+.segment-box.is-fixed {
+    background: var(--field-bg); /* 変えられない欄は記入欄の地 */
+}
+
+.segment-label {
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+}
+
+.segment-name {
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.segment-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.note {
+    margin: var(--space-sm) 0 0;
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-note);
+    color: var(--muted);
+}
+
+/* --- 選択肢（○で囲む／□に✓）---------------------------------------
+   ラジオ・チェックボックス本体は隠し、ラベルを押せる的にする。
+   ○ と ✓ は ::before で上に描く飾りで、意味は input が持つ。 */
+.choice-grid {
+    display: grid;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+/* 出発地: 2×2 の点線の格子（画面サンプル）*/
+.choice-grid--stops {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    border-top: var(--rule-dotted);
+    border-left: var(--rule-dotted);
+}
+
+/* 利用手段: 横に並べ、入りきらなければ折り返す */
+.choice-grid--check {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-md);
+}
+
+/* 歩く速さ: 4つを1列に並べ、選んだものを○で囲む */
+.choice-grid--speeds {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+}
+
+.choice-grid input[type="radio"],
+.choice-grid input[type="checkbox"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.choice-grid label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    /* 押せるものは 44px 以上（デザイン指南書「押せる大きさ」） */
+    min-height: var(--tap-min);
+    padding: var(--space-xs) var(--space-xs);
+    font-size: var(--size-small);
+    line-height: 1.3;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 出発地の格子の1マス。選んだものはアイコン欄を塗り、太字にする */
+.choice-grid--stops label {
+    min-height: 48px;
+    padding: 0 10px;
+    border-right: var(--rule-dotted);
+    border-bottom: var(--rule-dotted);
+}
+
+.choice-grid--stops input:checked + label .icon-slot {
+    background: var(--selected-bg);
+    border-style: dashed;
+    border-color: var(--ink);
+}
+
+/* 歩く速さ: 文字を○で囲む（ADR-0011: 丸は「選択の印」だけに使ってよい）*/
+.choice-grid--speeds label {
+    justify-content: center;
+    min-height: 56px;
+    padding: 0;
+}
+
+.choice-ring {
+    padding: 7px 6px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    white-space: nowrap;
+}
+
+.choice-grid--speeds input:checked + label .choice-ring {
+    border-color: var(--ink);
+}
+
+/* □に✓＝使う乗り物（複数選べる）*/
+.choice-grid--check label::before {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+}
+
+.choice-grid--check label {
+    position: relative;
+}
+
+.choice-grid--check input:checked + label::after {
+    content: "";
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    width: 4px;
+    height: 9px;
+    margin-top: -7px;
+    border: solid var(--ink);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.choice-grid input:checked + label {
+    font-weight: bold;
+}
+
+/* □に－＝その手段の事業者を一部だけ使う（#96）。
+   input.indeterminate = true に CSS の :indeterminate が付く */
+.choice-grid--check input:indeterminate + label::after {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    width: 11px;
+    height: 0;
+    margin-top: -1px;
+    border-top: 2px solid var(--ink);
+    transform: none;
+}
+
+/* 利用手段（親）と交通事業者（子）の入れ子（#96・ADR-0029）*/
+.mode-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* 事業者: 手段の文字の下にそろえて、1段下げる。
+   親より小さく細くして、どちらが見出しかが一目で分かるようにする */
+.operator-grid {
+    margin-left: 26px;
+    gap: 0 var(--space-sm);
+}
+
+.operator-grid label {
+    /* 親より小さいが、押せる大きさ（44px）は崩さない */
+    min-height: var(--tap-min);
+    font-size: var(--size-note);
+}
+
+.operator-grid label::before {
+    width: 14px;
+    height: 14px;
+}
+
+.operator-grid input:checked + label::after {
+    left: 9px;
+    width: 3px;
+    height: 7px;
+    margin-top: -6px;
+}
+
+/* 手段を外しているあいだは、その事業者は効かない。
+   チェックは消さずに薄くするので、手段を戻せば前の選択がそのまま戻る */
+.operator-grid input:disabled + label {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* キーボードで辿れるように、本体に焦点が来たらラベルを囲む */
+.choice-grid input:focus-visible + label {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+/* 乗り物のアイコン（shared/modeIcons.js）。帯の模様だけでは初見で伝わりにくいので添える */
+.mode-icon {
+    flex: none;
+    width: 22px;
+    height: 22px;
+}
+
+.machine-btn--mode .mode-icon {
+    width: 36px;
+    height: 36px;
+}
+
+/* 券面の路線名の札では、文字に合わせて少し小さく。
+   色は .ticket-line から継ぐので、遅れている路線では赤になる */
+.ticket-line .mode-icon {
+    width: 17px;
+    height: 17px;
+}
+
+/* アイコンの置き場所（破線の四角。アイコン自体は未決 / ADR-0020） */
+.icon-slot {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border: 1px dashed var(--muted);
+}
+
+/* --- 出発日時の欄 ---------------------------------------------------- */
+.time-mode {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.time-mode input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.time-mode label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap-min);
+    padding: 0 var(--space-md);
+    border: 2px solid transparent;
+    border-radius: 22px; /* 選んだほうを○で囲む（ADR-0011: 丸は選択の印）*/
+    font-size: var(--size-small);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.time-mode input:checked + label {
+    border-color: var(--ink);
+    font-weight: bold;
+}
+
+.time-mode input:focus-visible + label {
+    outline: 2px solid var(--ink);
+    outline-offset: -4px;
+}
+
+.minutes-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    margin: 0 0 var(--space-sm);
+}
+
+/* 分数は十の位と一の位の2つの箱（画面サンプル）*/
+.digit-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 48px;
+    border: var(--rule);
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums; /* ADR-0017: 数字は桁幅をそろえる */
+}
+
+.min-label {
+    padding-bottom: 4px;
+    font-size: var(--size-body);
+}
+
+/* クイックボタン。申込書では1本の枠の中に区切って並べる（画面サンプル）*/
+.quick-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: var(--rule);
+}
+
+.quick-btn {
+    min-height: var(--tap-min);
+    padding: var(--space-xs) 2px;
+    background: transparent;
+    border: 0;
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: var(--size-small);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.quick-btn + .quick-btn {
+    border-left: var(--rule);
+}
+
+/* 「〇限終わり」（#164）。クイックボタンと同じ1本の枠に区切って並べる。
+   残りの時限が3つ未満の日もあるので、列の数は出したボタンの数に合わせる */
+.period-buttons {
+    margin-top: var(--space-sm);
+}
+
+.period-buttons-lbl {
+    margin: 0 0 var(--space-xs);
+    color: var(--ink);
+    font-size: var(--size-small);
+}
+
+.period-buttons-row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    border: var(--rule);
+}
+
+.period-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.3;
+}
+
+.period-btn-time {
+    font-size: var(--size-note);
+}
+
+.date-time-inputs {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.date-time-inputs input {
+    min-width: 0;
+    min-height: var(--tap-min);
+    padding: var(--space-xs) var(--space-sm);
+}
+
+/* 申込書の「日時を指定」: 月・日・時・分の4つの箱（画面サンプル）*/
+.date-boxes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.date-box {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    margin-right: 2px;
+}
+
+.date-box input {
+    width: 34px;
+    height: var(--tap-min);
+    padding: 0;
+    border: var(--rule);
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.date-box input::-webkit-outer-spin-button,
+.date-box input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.date-box span {
+    padding-bottom: 4px;
+    font-size: var(--size-small);
+    white-space: nowrap;
+}
+
+/* 日付は「2026/10/05」＋ピッカーの分だけ時刻より広く要る */
+.date-time-inputs input[type="date"] { flex: 1.5; }
+.date-time-inputs input[type="time"] { flex: 1; }
+
+/* --- 画面の下に固定する欄（控・発行ボタン）-----------------------------
+   申込書は1画面に収まらないので、スクロールの途中でも条件の確認と発行が
+   できるように、この3つだけを画面の下に留める。いちばん下までスクロール
+   すると申込書の中の元の位置に収まる（position: sticky）。
+   上の記入欄が透けないよう紙の地で塗り、上端に罫線を引いて区切る */
+.sheet-dock {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: var(--paper);
+    border-top: var(--rule-strong);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* --- 控（いま選んでいる条件の確認欄）-----------------------------------
+   左に大きく「控」、右に条件を1行ずつ（画面サンプルの申込書） */
+.receipt {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    margin: var(--space-sm);
+    border: var(--rule);
+}
+
+.receipt-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: var(--rule);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.receipt-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--size-small);
+    font-variant-numeric: tabular-nums;
+}
+
+.receipt-route {
+    font-size: var(--size-body);
+    font-weight: bold;
+}
+
+.receipt-modes {
+    color: var(--muted);
+}
+
+/* ルート全体の出発・到着時刻の強調表示 */
+.route-times-header {
+    font-size: 22px; 
+    margin: 5px 0 10px 0;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px; 
+}
+
+.route-times-header b {
+    font-size: 26px; 
+    color: var(--ink); 
+    letter-spacing: 1px;
+}
+
+.route-times-header .arrow {
+    color: var(--muted);
+    font-size: 18px;
+    margin: 0 4px;
+}
+
+.route-details-text {
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--muted); 
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.is-hidden {
+    display: none !important;
+}
+
+/* ===========================================================================
+   交通手段の模様（ADR-0011 / デザイン指南書「表記の語彙」）
+   手段は「模様」、遅れは「赤」と役割を分ける。
+   線は --mode-ink で引くので、.is-delayed を足すと模様はそのままで色だけ赤になる。
+   使う場所: 手段の帯、縦の経路図、ダイヤ図、路線名の左の小さな見本
+   =========================================================================== */
+.mode {
+    --mode-ink: var(--ink);
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* 遅れている区間。模様は変えず、線の色だけ赤にする */
+.mode.is-delayed {
+    --mode-ink: var(--red);
+}
+
+/* 横に引く線（手段の帯・ダイヤ図の帯）。高さは使う側で決める */
+.mode--band {
+    height: 10px;
+    width: 100%;
+}
+
+/* 縦に引く線（経路図）。幅は使う側で決める */
+.mode--line {
+    width: 10px;
+    height: 100%;
+}
+
+/* 路線名の左に置く小さな見本 */
+.mode--swatch {
+    width: 20px;
+    height: 10px;
+}
+
+/* --- 徒歩: 点線（弱い文字の色）---------------------------------------- */
+.mode.is-walk {
+    --mode-ink: var(--muted);
+    background: repeating-linear-gradient(
+        90deg,
+        var(--mode-ink) 0 3px,
+        transparent 3px 7px
+    );
+}
+.mode--line.is-walk {
+    background: repeating-linear-gradient(
+        180deg,
+        var(--mode-ink) 0 3px,
+        transparent 3px 7px
+    );
+}
+/* 帯の中では丸い点で打つ。電車の縞と見分けがつくように */
+.mode--band.is-walk {
+    background: radial-gradient(
+        circle at center,
+        var(--mode-ink) 0 1.5px,
+        transparent 1.5px
+    ) 0 50% / 7px 7px repeat-x;
+}
+/* 路線名の左の見本も点で打つ。縦じま「III」に見えないように */
+.mode--swatch.is-walk {
+    background: radial-gradient(
+        circle at center,
+        var(--mode-ink) 0 1.5px,
+        transparent 1.5px
+    ) 0 50% / 5px 5px repeat-x;
+}
+/* 徒歩が遅れることはないが、規則として同じ扱いにしておく */
+.mode.is-walk.is-delayed { --mode-ink: var(--red); }
+
+/* --- バス: 塗りつぶしの太線 -------------------------------------------- */
+.mode.is-bus {
+    background: var(--mode-ink);
+}
+
+/* --- 電車: 白黒の縞（地図記号の鉄道）-----------------------------------
+   白い側は紙の色で抜く。ダークで白のままだと地より明るく浮くため */
+.mode.is-train {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--mode-ink) 0 5px,
+        var(--paper) 5px 10px
+    );
+    outline: 1px solid var(--mode-ink);
+    outline-offset: -1px;
+}
+.mode--line.is-train {
+    background: repeating-linear-gradient(
+        180deg,
+        var(--mode-ink) 0 5px,
+        var(--paper) 5px 10px
+    );
+}
+
+/* --- シェアサイクル: 白抜きの太線 --------------------------------------
+   中は紙の色で抜き、線で縁取る */
+.mode.is-cycle {
+    background: var(--paper);
+    outline: 2px solid var(--mode-ink);
+    outline-offset: -2px;
+}
+
+/* --- 待ち時間: 左端の縦線＋細い線（ADR-0027）--------------------------
+   乗り物ではないので帯の模様とは別物に見えるよう、細い線で前後をつなぐ。
+   左端の縦線は「ここに着く」印で、着いてから次の便までの間を示す。
+   空けたままだと描き忘れ（バグ）に見えるため */
+.band-seg.is-wait,
+.diagram-band.is-wait,
+.mode--swatch.is-wait {
+    background:
+        linear-gradient(var(--ink), var(--ink)) left center / 1.5px 100% no-repeat,
+        linear-gradient(var(--ink), var(--ink)) center / 100% 1.5px no-repeat;
+}
+
+/* ===========================================================================
+   フッター（画面サンプル）
+   小さいゴシックで、左に「© team 301」、右に免責事項・報告などのリンク
+   =========================================================================== */
+footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-xs) var(--space-md);
+    max-width: 800px;
+    margin: var(--space-md) auto 0;
+    padding: var(--space-sm) 10px var(--space-lg);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    color: var(--muted);
+}
+
+footer p {
+    margin: 0 auto 0 0;
+}
+
+footer a {
+    color: var(--ink);
+}
+
+/* 「© team 301」はホームページへのリンク（#232）。ほかのリンクと並ばない位置なので、
+   色は地の文のまま、下線だけでリンクと分かるようにする */
+footer a.copy-link {
+    color: inherit;
+}
+
+/* 出典の1行（#125）。ODPT の利用条件で消せないので、リンクの下に1行で置く */
+footer .credit-short {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: clamp(7px, 2.5vw, 11px);
+    white-space: nowrap;
+}
+
+:root[data-output="wide"] footer,
+:root[data-input="wide"] footer {
+    max-width: 1200px;
+}
+
+/* ===========================================================================
+   報告の欄（#122・ADR-0010）
+   問い合わせを交通事業者ではなく team301 に向ける。
+   結果の見出しの下の一文、案内券の詳細の「報告」、ページに1つの報告の欄
+   =========================================================================== */
+/* 夜の検索の「今日の最終」（#165）。案内券の上に、罫線で囲んだ小さな一覧として置く。
+   赤は遅れと満車だけに使う決まりなので、「あと〇分」も墨（--ink）のまま */
+.last-departures {
+    margin: var(--space-sm) 0 var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: var(--rule-strong);
+    background: var(--paper);
+}
+
+.last-departures-title {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--size-body);
+}
+
+.last-departures-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.last-departure {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-xs) 0;
+    border-top: var(--rule-dashed);
+}
+
+.last-departure:first-child {
+    border-top: 0;
+}
+
+/* 1段目: 乗り物のアイコンと路線（#229） */
+.last-departure-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: bold;
+}
+
+.last-departure-name .mode-icon {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+}
+
+/* 2段目: 残り時間を大きく、その横に乗り場と最終の発車時刻を小さく。
+   「あと〇分」は検索した時刻から歩き始めるまでの分（画面を開いたまま減ってはいかない） */
+.last-departure-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.75em;
+}
+
+.last-departure-left {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.last-departure-left b {
+    margin: 0 0.1em;
+    font-size: 1.9em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.last-departure-time {
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.last-departures-ended {
+    margin: var(--space-xs) 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    line-height: 1.7;
+    color: var(--muted);
+}
+
+.report-note {
+    margin: var(--space-xs) 0 var(--space-sm);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    line-height: 1.7;
+    color: var(--muted);
+}
+
+/* 案内券の詳細・0件の欄に置く「報告」。案内の邪魔をしないよう弱い色にするが、
+   ボタンだと分かる程度の枠と地は持たせる（文字リンクだけだと見つからない）。
+   地は紙の色、枠と文字は弱い色。ADR-0011 どおり角丸・影は使わない */
+/* 案内券の詳細・0件の欄に置く「報告」。案内の邪魔をしないよう、見える箱は小さく、
+   弱い色にする。ボタンそのものは押せる大きさ（44px）を保ち、その中の span だけを
+   見せる（デザイン指南書「押せる大きさ」）。角丸・影は使わない（ADR-0011）*/
+.report-link {
+    /* 券の右端に寄せる（案内の本文は左から読むので、操作は右に置く） */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: fit-content;
+    margin-left: auto;
+    min-height: var(--tap-min);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 見える箱。下の発行欄と同じくらいの幅・文字の大きさに収める */
+.report-link-box {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--rule-weak-color);
+    background: var(--paper);
+    color: var(--muted);
+    font-family: var(--font-sans); /* ADR-0017: 12px以下はゴシック */
+    font-size: var(--size-min);
+}
+
+.report-link:hover .report-link-box {
+    border-color: var(--muted);
+    color: var(--ink);
+}
+
+.report-link:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+.report-dialog {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    border: var(--rule-strong);
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.report-dialog::backdrop {
+    background: rgba(14, 30, 58, 0.45);
+}
+
+.report-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: var(--rule-strong);
+}
+
+.report-title {
+    margin: 0;
+    font-size: var(--size-heading);
+    letter-spacing: 0.08em;
+}
+
+.report-close {
+    width: var(--tap-min);
+    height: var(--tap-min);
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.report-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+}
+
+.report-lead,
+.report-done {
+    margin: 0;
+    font-size: var(--size-body);
+    line-height: 1.7;
+}
+
+.report-done {
+    font-weight: bold;
+}
+
+.report-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.report-label {
+    font-size: var(--size-small);
+    font-weight: bold;
+}
+
+.report-field select,
+.report-field textarea {
+    min-height: var(--tap-min);
+    padding: var(--space-xs) var(--space-sm);
+    border: var(--rule);
+    background: var(--field-bg);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 16px; /* iOS で入力時に拡大されないよう 16px 以上 */
+}
+
+.report-field textarea {
+    resize: vertical;
+    line-height: 1.6;
+}
+
+/* 自動で送られる内容。開けば何が送られるか確かめられる */
+.report-auto summary {
+    font-size: var(--size-small);
+    cursor: pointer;
+}
+
+.report-auto pre {
+    margin: var(--space-xs) 0 0;
+    padding: var(--space-sm);
+    max-height: 180px;
+    overflow: auto;
+    border: var(--rule-dotted);
+    font-family: var(--font-sans);
+    font-size: var(--size-note);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* 人には見えない罠の欄。display: none だと機械が埋めないことがあるので、画面外に出す */
+.report-trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.report-error {
+    margin: 0;
+    color: var(--red);
+    font-weight: bold;
+}
+
+.report-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+.report-cancel,
+.report-submit {
+    min-height: var(--tap-min);
+    padding: 0 var(--space-md);
+    font-family: inherit;
+    font-size: var(--size-body);
+    cursor: pointer;
+}
+
+.report-cancel {
+    border: var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.report-submit {
+    border: 0;
+    background: var(--ink);
+    color: var(--on-ink);
+    font-weight: bold;
+}
+
+.report-submit:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* --- シェアサイクルのポートに添える事業者の印（#47）------------------------
+   色は はまこく Map と同じ（事業者の見分けを 2 つのアプリでそろえる）。
+   色だけに意味を載せないよう、事業者名か空き数の文字を必ず添える（ADR-0011）*/
+:root {
+    --hello: #f5b400;
+    --hello-fg: #221a00;
+    --docomo: #d8232a;
+    --docomo-fg: #ffffff;
+}
+
+.port-chips {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.port-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.port-chip.op-hellocycling { background: var(--hello); color: var(--hello-fg); }
+.port-chip.op-docomo { background: var(--docomo); color: var(--docomo-fg); }
+
+/* 借りられない・返せない事業者は灰色にする */
+.port-chip.is-off,
+.port-chip-ops i.is-off { background: var(--muted); color: var(--paper, #fff); }
+
+/* 返却は空きが共用なので、色だけ並べて数字は 1 つ */
+.port-chip--return {
+    background: transparent;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+}
+
+.port-chip-ops {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.port-chip-ops i {
+    width: 6px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.port-chip-ops i.op-hellocycling { background: var(--hello); }
+.port-chip-ops i.op-docomo { background: var(--docomo); }
+
+/* 券の見出しに添える、借りられる事業者の印（#47）。
+   「どのアプリが要るか」を券を開く前に分かるようにする */
+.ticket-line .line-op {
+    margin-left: 4px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    line-height: 15px;
+    vertical-align: 1px;
+}
+
+/* 印は縮めない・折らない。ダイヤ図の見出しのように幅が足りないところで
+   「ドコモ」が2段に割れていた */
+.ticket-line .line-op {
+    flex: none;
+    white-space: nowrap;
+}
+
+.ticket-line .line-op.op-hellocycling { background: var(--hello); color: var(--hello-fg); }
+.ticket-line .line-op.op-docomo { background: var(--docomo); color: var(--docomo-fg); }
+/* そのポートで借りられない事業者は灰色。「このアプリでは借りられない」も伝える */
+.ticket-line .line-op.is-off { background: var(--muted); color: var(--paper); }
+
+/* 料金の前提（#47）。シェアサイクルは車種・会員種別で金額が変わり、
+   フィードからは分からないので、どの料金で出したかを添える */
+.map-leg-fare .fare-plan {
+    margin-left: 6px;
+    font-family: var(--font-sans);
+    font-size: var(--size-min);
+    color: var(--muted);
+}

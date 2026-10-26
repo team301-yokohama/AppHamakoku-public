@@ -1,0 +1,1500 @@
+// update.js が生成するファイル。手で編集しない（ports.json と同じ内容）
+window.CYCLEMAP_PORTS = {
+  "updatedAt": "2026-10-12T12:53:58.633Z",
+  "operators": {
+    "hellocycling": {
+      "label": "HELLO CYCLING"
+    },
+    "docomo": {
+      "label": "ドコモ・バイクシェア"
+    }
+  },
+  "sources": {
+    "docomo": "https://api.odpt.org/api/v4/gbfs/docomo-cycle/station_information.json",
+    "hellocycling": "https://api.odpt.org/api/v4/gbfs/hellocycling/station_information.json"
+  },
+  "areas": [
+    {
+      "id": "ynu-campus",
+      "name": "横浜国立大学",
+      "role": "rent",
+      "svg": "campus-ynu.svg",
+      "bbox": {
+        "latMin": 35.469852,
+        "latMax": 35.477403,
+        "lonMin": 139.585316,
+        "lonMax": 139.596964
+      },
+      "viewBox": {
+        "width": 1056,
+        "height": 841
+      },
+      "ports": [
+        {
+          "id": "docomo:5357",
+          "source": "docomo",
+          "stationId": "5357",
+          "name": "H-031.横浜国立大学西門学びの坂駐輪場",
+          "displayName": "西門学びの坂駐輪場",
+          "lat": 35.475256,
+          "lon": 139.586116,
+          "capacity": 6,
+          "capacityByOperator": {
+            "docomo": 3,
+            "hellocycling": 6
+          },
+          "availableOperators": [
+            "docomo",
+            "hellocycling"
+          ],
+          "feedIds": {
+            "docomo": "5357",
+            "hellocycling": "25263"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "hellocycling:4777",
+          "source": "hellocycling",
+          "stationId": "4777",
+          "name": "ファミリーマート　横浜国立大学東店",
+          "displayName": "ファミリーマート 横浜国立大学東店",
+          "lat": 35.474725,
+          "lon": 139.593784,
+          "capacity": 12,
+          "capacityByOperator": {
+            "hellocycling": 12
+          },
+          "availableOperators": [
+            "hellocycling"
+          ],
+          "feedIds": {
+            "hellocycling": "4777"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "docomo:5355",
+          "source": "docomo",
+          "stationId": "5355",
+          "name": "H-029.横浜国立大学横浜国大橋下駐輪場",
+          "displayName": "横浜国大橋下駐輪場",
+          "lat": 35.471625,
+          "lon": 139.596105,
+          "capacity": 13,
+          "capacityByOperator": {
+            "docomo": 13,
+            "hellocycling": 13
+          },
+          "availableOperators": [
+            "docomo",
+            "hellocycling"
+          ],
+          "feedIds": {
+            "docomo": "5355",
+            "hellocycling": "25265"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "docomo:5354",
+          "source": "docomo",
+          "stationId": "5354",
+          "name": "H-028.横浜国立大学南門下駐輪場",
+          "displayName": "南門下駐輪場",
+          "lat": 35.471354,
+          "lon": 139.589251,
+          "capacity": 6,
+          "capacityByOperator": {
+            "docomo": 5,
+            "hellocycling": 6
+          },
+          "availableOperators": [
+            "docomo",
+            "hellocycling"
+          ],
+          "feedIds": {
+            "docomo": "5354",
+            "hellocycling": "25268"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "docomo:5356",
+          "source": "docomo",
+          "stationId": "5356",
+          "name": "H-030.横浜国立大学南地区駐輪場",
+          "displayName": "南地区駐輪場",
+          "lat": 35.470652,
+          "lon": 139.596164,
+          "capacity": 7,
+          "capacityByOperator": {
+            "docomo": 7,
+            "hellocycling": 7
+          },
+          "availableOperators": [
+            "docomo",
+            "hellocycling"
+          ],
+          "feedIds": {
+            "docomo": "5356",
+            "hellocycling": "25266"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        }
+      ],
+      "labelObstacles": [
+        [
+          720,
+          592,
+          768,
+          604
+        ],
+        [
+          747,
+          535,
+          843,
+          547
+        ],
+        [
+          675,
+          817,
+          711,
+          829
+        ],
+        [
+          379,
+          454,
+          451,
+          466
+        ],
+        [
+          82,
+          345,
+          130,
+          357
+        ],
+        [
+          648,
+          761,
+          713,
+          773
+        ],
+        [
+          707,
+          354,
+          743,
+          366
+        ],
+        [
+          86,
+          462,
+          110,
+          474
+        ],
+        [
+          244,
+          149,
+          268,
+          161
+        ],
+        [
+          615,
+          740,
+          663,
+          752
+        ],
+        [
+          415,
+          601,
+          439,
+          613
+        ],
+        [
+          793,
+          377,
+          841,
+          389
+        ],
+        [
+          935,
+          566,
+          959,
+          578
+        ],
+        [
+          736,
+          766,
+          780,
+          777
+        ],
+        [
+          1045,
+          627,
+          1078,
+          638
+        ],
+        [
+          505,
+          758,
+          560,
+          769
+        ],
+        [
+          377,
+          658,
+          421,
+          669
+        ],
+        [
+          348,
+          44,
+          403,
+          55
+        ],
+        [
+          954,
+          602,
+          1053,
+          613
+        ],
+        [
+          685,
+          362,
+          729,
+          373
+        ],
+        [
+          459,
+          294,
+          492,
+          305
+        ],
+        [
+          101,
+          398,
+          134,
+          409
+        ],
+        [
+          702,
+          573,
+          757,
+          584
+        ],
+        [
+          725,
+          767,
+          733,
+          775
+        ],
+        [
+          1034,
+          628,
+          1042,
+          636
+        ],
+        [
+          494,
+          759,
+          502,
+          767
+        ],
+        [
+          366,
+          659,
+          374,
+          667
+        ],
+        [
+          337,
+          45,
+          345,
+          53
+        ],
+        [
+          943,
+          602,
+          951,
+          610
+        ],
+        [
+          674,
+          363,
+          682,
+          371
+        ],
+        [
+          448,
+          295,
+          456,
+          303
+        ],
+        [
+          90,
+          399,
+          98,
+          407
+        ],
+        [
+          691,
+          573,
+          699,
+          581
+        ],
+        [
+          73,
+          461,
+          83,
+          471
+        ],
+        [
+          231,
+          148,
+          241,
+          158
+        ],
+        [
+          602,
+          739,
+          612,
+          749
+        ],
+        [
+          402,
+          601,
+          412,
+          611
+        ],
+        [
+          780,
+          377,
+          790,
+          387
+        ],
+        [
+          922,
+          565,
+          932,
+          575
+        ]
+      ],
+      "busStops": [
+        {
+          "name": "横浜新道",
+          "x": 728.8,
+          "y": 771.2
+        },
+        {
+          "name": "岡沢町",
+          "x": 1038,
+          "y": 632
+        },
+        {
+          "name": "常盤台住宅",
+          "x": 497.7,
+          "y": 762.6
+        },
+        {
+          "name": "国大南門",
+          "x": 370.2,
+          "y": 663.1
+        },
+        {
+          "name": "ひじりが丘",
+          "x": 340.9,
+          "y": 48.5
+        },
+        {
+          "name": "横浜国立大学正門前",
+          "x": 946.9,
+          "y": 606.3
+        },
+        {
+          "name": "国大中央",
+          "x": 677.9,
+          "y": 367.1
+        },
+        {
+          "name": "国大北",
+          "x": 452.4,
+          "y": 299.1
+        },
+        {
+          "name": "国大西",
+          "x": 94.2,
+          "y": 403.2
+        },
+        {
+          "name": "大学会館前",
+          "x": 694.8,
+          "y": 577.4
+        }
+      ],
+      "departures": [
+        {
+          "id": "Library",
+          "points": "459.9,473.5 494.7,485.6 479,533.2 476.8,532.4 469.3,555.8 432.3,543.1 440.6,519.4 423.4,513.2 417.8,483.9 459.9,473.5",
+          "bbox": [
+            417.8,
+            473.5,
+            494.7,
+            555.8
+          ]
+        },
+        {
+          "id": "Shokudo1",
+          "points": "741.8,571 732.3,568.6 733.7,562.8 711,557.2 714,544.8 713,544.6 716.6,530 720.5,531 722.7,522 752.1,529.3 747.6,547.5 744.7,546.8 743.8,550.6 746.7,551.3 741.8,571",
+          "bbox": [
+            711,
+            522,
+            752.1,
+            571
+          ]
+        },
+        {
+          "id": "Shokudo2",
+          "points": "107.4,392.6 108.9,391.3 109.1,389.2 108,387.4 105.8,387 101,388.4 97.8,377.4 110.9,373.5 109.8,370 96.7,373.9 94.8,367.5 87.5,369.7 86.3,365.6 66.7,371.5 69.9,382.4 71.1,382 72.3,386 67,387.6 71.7,403.2 107.4,392.6",
+          "bbox": [
+            66.7,
+            365.6,
+            110.9,
+            403.2
+          ]
+        },
+        {
+          "id": "RikoA",
+          "points": "399.9,407.2 390.3,404.3 387.5,413.4 371.9,408.6 375.6,396.8 371.4,395.5 368.7,404.2 358.7,401.1 361.8,391.2 359,390.3 364.9,371.2 379.3,375.6 376.2,385.7 379.2,386.6 382.2,377.2 392,380.2 388.8,390.6 392.5,391.8 395.8,381.1 407.7,384.8 410.2,385.5 406.6,397 409.8,398 408.6,401.9 406,401.1 404.5,405.9 422.8,402.2 425,413.7 418.8,414.9 419.6,418.9 421.9,418.5 424.4,431.1 400.9,435.6 398.5,423.3 402.6,422.5 399.9,407.2",
+          "bbox": [
+            358.7,
+            371.2,
+            425,
+            435.6
+          ]
+        }
+      ],
+      "kiosk": {
+        "svg": "campus-ynu-kiosk.svg",
+        "bbox": {
+          "latMin": 35.469852,
+          "latMax": 35.477403,
+          "lonMin": 139.582898,
+          "lonMax": 139.599382
+        },
+        "viewBox": {
+          "width": 1494,
+          "height": 841
+        },
+        "labelObstacles": [
+          [
+            939,
+            592,
+            987,
+            604
+          ],
+          [
+            965,
+            535,
+            1061,
+            547
+          ],
+          [
+            894,
+            817,
+            930,
+            829
+          ],
+          [
+            598,
+            454,
+            670,
+            466
+          ],
+          [
+            301,
+            345,
+            349,
+            357
+          ],
+          [
+            867,
+            761,
+            932,
+            773
+          ],
+          [
+            926,
+            354,
+            962,
+            366
+          ],
+          [
+            305,
+            462,
+            329,
+            474
+          ],
+          [
+            463,
+            149,
+            487,
+            161
+          ],
+          [
+            834,
+            740,
+            882,
+            752
+          ],
+          [
+            634,
+            601,
+            658,
+            613
+          ],
+          [
+            1011,
+            377,
+            1059,
+            389
+          ],
+          [
+            1153,
+            566,
+            1177,
+            578
+          ],
+          [
+            955,
+            766,
+            999,
+            777
+          ],
+          [
+            1264,
+            627,
+            1297,
+            638
+          ],
+          [
+            1437,
+            417,
+            1470,
+            428
+          ],
+          [
+            724,
+            758,
+            779,
+            769
+          ],
+          [
+            596,
+            658,
+            640,
+            669
+          ],
+          [
+            567,
+            44,
+            622,
+            55
+          ],
+          [
+            195,
+            369,
+            261,
+            380
+          ],
+          [
+            169,
+            761,
+            230,
+            772
+          ],
+          [
+            1173,
+            602,
+            1272,
+            613
+          ],
+          [
+            904,
+            362,
+            948,
+            373
+          ],
+          [
+            678,
+            294,
+            711,
+            305
+          ],
+          [
+            320,
+            398,
+            353,
+            409
+          ],
+          [
+            921,
+            573,
+            976,
+            584
+          ],
+          [
+            944,
+            767,
+            952,
+            775
+          ],
+          [
+            1253,
+            628,
+            1261,
+            636
+          ],
+          [
+            1426,
+            418,
+            1434,
+            426
+          ],
+          [
+            713,
+            759,
+            721,
+            767
+          ],
+          [
+            585,
+            659,
+            593,
+            667
+          ],
+          [
+            556,
+            45,
+            564,
+            53
+          ],
+          [
+            184,
+            369,
+            192,
+            377
+          ],
+          [
+            158,
+            761,
+            166,
+            769
+          ],
+          [
+            1162,
+            602,
+            1170,
+            610
+          ],
+          [
+            893,
+            363,
+            901,
+            371
+          ],
+          [
+            667,
+            295,
+            675,
+            303
+          ],
+          [
+            309,
+            399,
+            317,
+            407
+          ],
+          [
+            910,
+            573,
+            918,
+            581
+          ],
+          [
+            292,
+            461,
+            302,
+            471
+          ],
+          [
+            450,
+            148,
+            460,
+            158
+          ],
+          [
+            821,
+            739,
+            831,
+            749
+          ],
+          [
+            621,
+            601,
+            631,
+            611
+          ],
+          [
+            998,
+            377,
+            1008,
+            387
+          ],
+          [
+            1140,
+            565,
+            1150,
+            575
+          ]
+        ],
+        "busStops": [
+          {
+            "name": "横浜新道",
+            "x": 947.8,
+            "y": 771.2
+          },
+          {
+            "name": "岡沢町",
+            "x": 1256.9,
+            "y": 632
+          },
+          {
+            "name": "常盤台住宅",
+            "x": 716.7,
+            "y": 762.6
+          },
+          {
+            "name": "国大南門",
+            "x": 589.2,
+            "y": 663.1
+          },
+          {
+            "name": "ひじりが丘",
+            "x": 560,
+            "y": 48.5
+          },
+          {
+            "name": "横浜国立大学正門前",
+            "x": 1165.8,
+            "y": 606.3
+          },
+          {
+            "name": "国大中央",
+            "x": 896.9,
+            "y": 367.1
+          },
+          {
+            "name": "国大北",
+            "x": 671.4,
+            "y": 299.1
+          },
+          {
+            "name": "国大西",
+            "x": 313.3,
+            "y": 403.2
+          },
+          {
+            "name": "大学会館前",
+            "x": 913.8,
+            "y": 577.4
+          }
+        ],
+        "departures": [
+          {
+            "id": "Library",
+            "points": "678.9,473.5 713.7,485.6 698,533.2 695.8,532.4 688.3,555.8 651.3,543.1 659.6,519.4 642.4,513.2 636.8,483.9 678.9,473.5",
+            "bbox": [
+              636.8,
+              473.5,
+              713.7,
+              555.8
+            ]
+          },
+          {
+            "id": "Shokudo1",
+            "points": "960.8,571 951.2,568.6 952.6,562.8 929.9,557.2 932.9,544.8 932,544.6 935.6,530 939.4,531 941.6,522 971,529.3 966.6,547.5 963.6,546.8 962.7,550.6 965.6,551.3 960.8,571",
+            "bbox": [
+              929.9,
+              522,
+              971,
+              571
+            ]
+          },
+          {
+            "id": "Shokudo2",
+            "points": "326.5,392.6 328,391.3 328.2,389.2 327.2,387.4 324.9,387 320.1,388.4 316.9,377.4 330,373.5 328.9,370 315.8,373.9 313.9,367.5 306.6,369.7 305.4,365.6 285.8,371.5 289,382.4 290.2,382 291.4,386 286.1,387.6 290.8,403.2 326.5,392.6",
+            "bbox": [
+              285.8,
+              365.6,
+              330,
+              403.2
+            ]
+          },
+          {
+            "id": "RikoA",
+            "points": "618.9,407.2 609.4,404.3 606.5,413.4 591,408.6 594.6,396.8 590.4,395.5 587.8,404.2 577.8,401.1 580.8,391.2 578,390.3 584,371.2 598.4,375.6 595.3,385.7 598.3,386.6 601.2,377.2 611,380.2 607.8,390.6 611.6,391.8 614.9,381.1 626.8,384.8 629.2,385.5 625.7,397 628.9,398 627.7,401.9 625.1,401.1 623.6,405.9 641.8,402.2 644.1,413.7 637.8,414.9 638.6,418.9 641,418.5 643.4,431.1 619.9,435.6 617.5,423.3 621.7,422.5 618.9,407.2",
+            "bbox": [
+              577.8,
+              371.2,
+              644.1,
+              435.6
+            ]
+          }
+        ]
+      },
+      "stations": [],
+      "exits": []
+    },
+    {
+      "id": "yokohama-station",
+      "name": "横浜駅",
+      "role": "return",
+      "svg": "yokohama-station.svg",
+      "bbox": {
+        "latMin": 35.461779,
+        "latMax": 35.469808,
+        "lonMin": 139.618451,
+        "lonMax": 139.628131
+      },
+      "viewBox": {
+        "width": 878,
+        "height": 894
+      },
+      "ports": [
+        {
+          "id": "hellocycling:9788",
+          "source": "hellocycling",
+          "stationId": "9788",
+          "name": "横浜銀行横浜駅前支店",
+          "displayName": "横浜銀行横浜駅前支店",
+          "lat": 35.467334,
+          "lon": 139.621688,
+          "capacity": 12,
+          "capacityByOperator": {
+            "hellocycling": 12,
+            "docomo": 6
+          },
+          "availableOperators": [
+            "hellocycling",
+            "docomo"
+          ],
+          "feedIds": {
+            "hellocycling": "9788",
+            "docomo": "4516"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "hellocycling:20183",
+          "source": "hellocycling",
+          "stationId": "20183",
+          "name": "181.トレゾ横浜",
+          "displayName": "トレゾ横浜",
+          "lat": 35.468783,
+          "lon": 139.622833,
+          "capacity": 3,
+          "capacityByOperator": {
+            "hellocycling": 3,
+            "docomo": 1
+          },
+          "availableOperators": [
+            "hellocycling",
+            "docomo"
+          ],
+          "feedIds": {
+            "hellocycling": "20183",
+            "docomo": "3481"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "hellocycling:26785",
+          "source": "hellocycling",
+          "stationId": "26785",
+          "name": "コインパーク金港町第2",
+          "displayName": "コインパーク金港町第2",
+          "lat": 35.4677696,
+          "lon": 139.6252267,
+          "capacity": 19,
+          "capacityByOperator": {
+            "hellocycling": 19
+          },
+          "availableOperators": [
+            "hellocycling"
+          ],
+          "feedIds": {
+            "hellocycling": "26785"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "hellocycling:11073",
+          "source": "hellocycling",
+          "stationId": "11073",
+          "name": "シンコウパーク横浜西口",
+          "displayName": "シンコウパーク横浜西口",
+          "lat": 35.469008,
+          "lon": 139.621631,
+          "capacity": 6,
+          "capacityByOperator": {
+            "hellocycling": 6,
+            "docomo": 6
+          },
+          "availableOperators": [
+            "hellocycling",
+            "docomo"
+          ],
+          "feedIds": {
+            "hellocycling": "11073",
+            "docomo": "4513"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "hellocycling:20122",
+          "source": "hellocycling",
+          "stationId": "20122",
+          "name": "116.横浜駅西口第２駐車場",
+          "displayName": "横浜駅西口第２駐車場",
+          "lat": 35.468406,
+          "lon": 139.619251,
+          "capacity": 1000,
+          "capacityByOperator": {
+            "hellocycling": 1000,
+            "docomo": 10
+          },
+          "availableOperators": [
+            "hellocycling",
+            "docomo"
+          ],
+          "feedIds": {
+            "hellocycling": "20122",
+            "docomo": "2067"
+          },
+          "unlimitedReturn": true,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "docomo:2064",
+          "source": "docomo",
+          "stationId": "2064",
+          "name": "075.横浜スカイビル前",
+          "displayName": "横浜スカイビル前",
+          "lat": 35.464864,
+          "lon": 139.624168,
+          "capacity": 0,
+          "capacityByOperator": {
+            "docomo": 0
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "2064"
+          },
+          "unlimitedReturn": true,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "docomo:2098",
+          "source": "docomo",
+          "stationId": "2098",
+          "name": "112.横浜スカイビル前-2",
+          "displayName": "横浜スカイビル前-2",
+          "lat": 35.464396,
+          "lon": 139.62415,
+          "capacity": 0,
+          "capacityByOperator": {
+            "docomo": 0
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "2098"
+          },
+          "unlimitedReturn": true,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "docomo:2103",
+          "source": "docomo",
+          "stationId": "2103",
+          "name": "120.アソビル",
+          "displayName": "アソビル",
+          "lat": 35.463607,
+          "lon": 139.622196,
+          "capacity": 0,
+          "capacityByOperator": {
+            "docomo": 0
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "2103"
+          },
+          "unlimitedReturn": true,
+          "usedByHamakokuex": true,
+          "note": null
+        },
+        {
+          "id": "docomo:2020",
+          "source": "docomo",
+          "stationId": "2020",
+          "name": "024.横浜三井ビルディング",
+          "displayName": "横浜三井ビルディング",
+          "lat": 35.462944,
+          "lon": 139.624292,
+          "capacity": 3,
+          "capacityByOperator": {
+            "docomo": 3
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "2020"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "docomo:479",
+          "source": "docomo",
+          "stationId": "479",
+          "name": "130.横濱ゲートタワー",
+          "displayName": "横濱ゲートタワー",
+          "lat": 35.462579,
+          "lon": 139.624539,
+          "capacity": 6,
+          "capacityByOperator": {
+            "docomo": 6
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "479"
+          },
+          "unlimitedReturn": false,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "docomo:623",
+          "source": "docomo",
+          "stationId": "623",
+          "name": "131.横浜みなと第一生命ビル",
+          "displayName": "横浜みなと第一生命ビル",
+          "lat": 35.468676,
+          "lon": 139.625838,
+          "capacity": 3,
+          "capacityByOperator": {
+            "docomo": 3
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "623"
+          },
+          "unlimitedReturn": true,
+          "usedByHamakokuex": false,
+          "note": null
+        },
+        {
+          "id": "docomo:2004",
+          "source": "docomo",
+          "stationId": "2004",
+          "name": "005.横浜ベイクォーター",
+          "displayName": "横浜ベイクォーター",
+          "lat": 35.466289,
+          "lon": 139.627331,
+          "capacity": 22,
+          "capacityByOperator": {
+            "docomo": 22
+          },
+          "availableOperators": [
+            "docomo"
+          ],
+          "feedIds": {
+            "docomo": "2004"
+          },
+          "unlimitedReturn": true,
+          "usedByHamakokuex": true,
+          "note": null
+        }
+      ],
+      "labelObstacles": [
+        [
+          521,
+          574,
+          605,
+          586
+        ],
+        [
+          224,
+          242,
+          296,
+          254
+        ],
+        [
+          323,
+          506,
+          431,
+          518
+        ],
+        [
+          302,
+          280,
+          374,
+          292
+        ],
+        [
+          28,
+          664,
+          76,
+          676
+        ],
+        [
+          305,
+          629,
+          353,
+          641
+        ],
+        [
+          559,
+          734,
+          631,
+          746
+        ],
+        [
+          392,
+          386,
+          428,
+          398
+        ],
+        [
+          122,
+          332,
+          170,
+          344
+        ],
+        [
+          535,
+          49,
+          633,
+          61
+        ],
+        [
+          528,
+          835,
+          624,
+          847
+        ],
+        [
+          259,
+          403,
+          343,
+          415
+        ],
+        [
+          308,
+          351,
+          360,
+          363
+        ],
+        [
+          175,
+          429,
+          211,
+          441
+        ],
+        [
+          192,
+          474,
+          276,
+          486
+        ],
+        [
+          584,
+          493,
+          620,
+          505
+        ],
+        [
+          392,
+          483,
+          428,
+          495
+        ],
+        [
+          161,
+          260,
+          245,
+          272
+        ],
+        [
+          669,
+          312,
+          777,
+          324
+        ]
+      ],
+      "busStops": [],
+      "departures": [],
+      "kiosk": {
+        "svg": "yokohama-station-kiosk.svg",
+        "bbox": {
+          "latMin": 35.461779,
+          "latMax": 35.469808,
+          "lonMin": 139.614528,
+          "lonMax": 139.632054
+        },
+        "viewBox": {
+          "width": 1589,
+          "height": 894
+        },
+        "labelObstacles": [
+          [
+            876,
+            574,
+            960,
+            586
+          ],
+          [
+            580,
+            242,
+            652,
+            254
+          ],
+          [
+            678,
+            506,
+            786,
+            518
+          ],
+          [
+            657,
+            280,
+            729,
+            292
+          ],
+          [
+            384,
+            664,
+            432,
+            676
+          ],
+          [
+            660,
+            629,
+            708,
+            641
+          ],
+          [
+            914,
+            734,
+            986,
+            746
+          ],
+          [
+            748,
+            386,
+            784,
+            398
+          ],
+          [
+            477,
+            332,
+            525,
+            344
+          ],
+          [
+            891,
+            49,
+            989,
+            61
+          ],
+          [
+            883,
+            835,
+            979,
+            847
+          ],
+          [
+            614,
+            403,
+            698,
+            415
+          ],
+          [
+            663,
+            351,
+            716,
+            363
+          ],
+          [
+            531,
+            429,
+            567,
+            441
+          ],
+          [
+            547,
+            474,
+            631,
+            486
+          ],
+          [
+            939,
+            493,
+            975,
+            505
+          ],
+          [
+            748,
+            483,
+            784,
+            495
+          ],
+          [
+            517,
+            260,
+            601,
+            272
+          ],
+          [
+            1024,
+            312,
+            1132,
+            324
+          ]
+        ],
+        "busStops": [],
+        "departures": []
+      },
+      "stations": [
+        {
+          "id": "jr",
+          "name": "JR",
+          "short": "JR",
+          "lat": 35.46579,
+          "lon": 139.6224
+        },
+        {
+          "id": "keikyu",
+          "name": "京急",
+          "short": "京急",
+          "lat": 35.466397,
+          "lon": 139.623467
+        },
+        {
+          "id": "tokyu",
+          "name": "東急",
+          "short": "東急",
+          "lat": 35.466419,
+          "lon": 139.622203
+        },
+        {
+          "id": "sotetsu",
+          "name": "相鉄",
+          "short": "相鉄",
+          "lat": 35.464794,
+          "lon": 139.62038
+        },
+        {
+          "id": "subway",
+          "name": "市営地下鉄",
+          "short": "地下鉄",
+          "lat": 35.465624,
+          "lon": 139.619948
+        }
+      ],
+      "exits": [
+        {
+          "name": "横浜駅きた西口",
+          "short": "きた西口",
+          "lat": 35.467397,
+          "lon": 139.623068,
+          "bearing": 124
+        },
+        {
+          "name": "横浜駅きた東口A",
+          "short": "きた東口A",
+          "lat": 35.467034,
+          "lon": 139.624077,
+          "bearing": 304
+        },
+        {
+          "name": "横浜駅きた東口B",
+          "short": "きた東口B",
+          "lat": 35.466225,
+          "lon": 139.623484,
+          "bearing": 304
+        },
+        {
+          "name": "西口",
+          "short": "西口",
+          "lat": 35.466322,
+          "lon": 139.62165,
+          "bearing": 124
+        },
+        {
+          "name": "横浜駅東口",
+          "short": "東口",
+          "lat": 35.465356,
+          "lon": 139.623214,
+          "bearing": 304
+        },
+        {
+          "name": "みなみ西口",
+          "short": "みなみ西口",
+          "lat": 35.464838,
+          "lon": 139.620333,
+          "bearing": 124
+        },
+        {
+          "name": "横浜駅みなみ東口",
+          "short": "みなみ東口",
+          "lat": 35.464812,
+          "lon": 139.622685,
+          "bearing": 304
+        }
+      ]
+    }
+  ]
+};

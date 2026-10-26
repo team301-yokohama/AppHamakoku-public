@@ -1,0 +1,213 @@
+{
+  "_comment": "エリア定義（手で編集する）。bbox は SVG の座標系そのものなので、ポートを足しても変えないこと。変えるときは SVG を描き直す",
+  "areas": [
+    {
+      "id": "ynu-campus",
+      "name": "横浜国立大学",
+      "svg": "campus-ynu.svg",
+      "bbox": {
+        "latMin": 35.469852,
+        "latMax": 35.477403,
+        "lonMin": 139.585316,
+        "lonMax": 139.596964
+      },
+      "osm": {
+        "_comment": "drawArea.js 用。buildingLabels は OSM の name → 表示名（載せたい建物だけ列挙する）。placeLabels は載せる place ノードの name",
+        "buildingLabels": {
+          "横浜国立大学附属図書館中央図書館": "中央図書館",
+          "大学会館": "大学会館",
+          "第1食堂": "第1食堂",
+          "第2食堂": "第2食堂",
+          "本部棟": "本部棟",
+          "学生センター": "学生センター",
+          "理工学部講義棟A": "理工講義棟A",
+          "国際教育センター": "国際教育センター",
+          "RISE MALL 常盤台": "RISE MALL",
+          "ローソン": "ローソン",
+          "ガスト": "ガスト"
+        },
+        "placeLabels": [],
+        "hideBusStops": [
+          "西釜台",
+          "釜台住宅第2"
+        ],
+        "_hideBusStops": "地図に描かないバス停（#65 で決定、#177）。釜台住宅第2 はいまの範囲の外だが、北へ広げたとき（#181）にも出さないので先に書いておく"
+      },
+      "departures": {
+        "Library": "横浜国立大学附属図書館中央図書館",
+        "Shokudo1": "第1食堂",
+        "Shokudo2": "第2食堂",
+        "RikoA": "理工学部講義棟A"
+      },
+      "_departures": "はまこく Exp. の出発地（フォームの departure の値）→ その建物の OSM の name（#179）。update.js が SVG から建物の形を拾って ports.json に焼き込む",
+      "ports": [
+        {
+          "source": "docomo",
+          "stationId": "5357"
+        },
+        {
+          "source": "hellocycling",
+          "stationId": "4777"
+        },
+        {
+          "source": "docomo",
+          "stationId": "5355"
+        },
+        {
+          "source": "docomo",
+          "stationId": "5354"
+        },
+        {
+          "source": "docomo",
+          "stationId": "5356"
+        }
+      ],
+      "kiosk": {
+        "_comment": "展示モード（?kiosk）だけで使う横長の地図。画面いっぱいに出したときに左右が余らないよう 16:9 にしてある（#180）",
+        "svg": "campus-ynu-kiosk.svg",
+        "bbox": {
+          "latMin": 35.469852,
+          "latMax": 35.477403,
+          "lonMin": 139.582898,
+          "lonMax": 139.599382
+        }
+      }
+    },
+    {
+      "id": "yokohama-station",
+      "name": "横浜駅",
+      "svg": "yokohama-station.svg",
+      "bbox": {
+        "latMin": 35.461779,
+        "latMax": 35.469808,
+        "lonMin": 139.618451,
+        "lonMax": 139.628131
+      },
+      "osm": {
+        "_comment": "大学の敷地が無いので、駅の建物（building=train_station）を強調する敷地にする。建物が密集するので、外側の小さな建物は minBuildingArea（m²）未満を描かない",
+        "focus": [
+          {
+            "building": "train_station",
+            "public_transport": "station"
+          }
+        ],
+        "minBuildingArea": 300,
+        "buildingLabels": {
+          "横浜駅": "横浜駅",
+          "相鉄ビル": "相鉄ビル",
+          "横浜ターミナルビル": "横浜ターミナルビル",
+          "JR横浜鶴屋町ビル": "JR横浜鶴屋町ビル",
+          "エキニア横浜": "エキニア横浜",
+          "横浜モアーズ": "横浜モアーズ",
+          "アソビル": "アソビル",
+          "ムービル": "ムービル",
+          "横浜スカイビル": "横浜スカイビル",
+          "横濱ゲートタワー": "横濱ゲートタワー",
+          "横浜三井ビルディング": "横浜三井ビル"
+        },
+        "placeLabels": [],
+        "_buildingLabels": "目印になる建物（#202）。ポート名と同じ建物（スカイビル・ゲートタワー・三井ビル・アソビル）も地図に書く。ピンの名前と重なるが、ポートの層を消しても建物が分かるほうを採った。入っている商業施設の名前のほうが通りがよい建物（JR横浜タワー＝ニュウマン・CIAL、新相鉄ビル＝髙島屋・相鉄ジョイナス、横浜新都市ビル＝そごう、横浜ベイクォーター）は、ここではなく poiLabels で出す",
+        "poiLabels": [
+          { "name": "ニュウマン横浜", "lat": 35.466136, "lon": 139.621767 },
+          { "name": "CIAL横浜", "lat": 35.466604, "lon": 139.622133 },
+          { "name": "髙島屋", "lat": 35.4659, "lon": 139.620582 },
+          { "name": "相鉄ジョイナス", "lat": 35.465499, "lon": 139.621028 },
+          { "name": "そごう", "lat": 35.465323, "lon": 139.625083 },
+          { "name": "ルミネ", "lat": 35.465421, "lon": 139.622974 },
+          { "name": "ヨドバシカメラ", "lat": 35.467419, "lon": 139.620691 },
+          { "name": "横浜ベイクォーター", "lat": 35.466953, "lon": 139.626417 }
+        ],
+        "_poiLabels": "商業施設の名前（#202）。建物名より通りがよいので、建物の名前の代わりにこちらを出す。OSM の shop=mall / department_store のノードから 2026-10-18 に書き写した（Overpass の既定の問い合わせには入れていない。追加のノードを取りに行くと取得が重くなるため）。同じ名前のノードが複数あるものは1つだけにしてある",
+        "showBusStops": [],
+        "_showBusStops": "このエリアで地図に出すバス停（#184）。横浜駅西口は「大学方面の便がある停留所」のつもりで出していたが、実際に持っているのは大学から横浜駅に着く便の到着時刻で、押しても役に立たなかった（#202）。横浜駅から大学方面の時刻表は #56 の範囲なので、それまで出さない（空の配列＝1つも出さない）"
+      },
+      "ports": [
+        {
+          "source": "hellocycling",
+          "stationId": "9788",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "hellocycling",
+          "stationId": "20183",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "hellocycling",
+          "stationId": "26785",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "hellocycling",
+          "stationId": "11073",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "hellocycling",
+          "stationId": "20122",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "docomo",
+          "stationId": "2064",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "docomo",
+          "stationId": "2098",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "docomo",
+          "stationId": "2103",
+          "usedByHamakokuex": true
+        },
+        {
+          "source": "docomo",
+          "stationId": "2020"
+        },
+        {
+          "source": "docomo",
+          "stationId": "479"
+        },
+        {
+          "source": "docomo",
+          "stationId": "623"
+        },
+        {
+          "source": "docomo",
+          "stationId": "2004",
+          "usedByHamakokuex": true
+        }
+      ],
+      "role": "return",
+      "railStations": true,
+      "exits": [
+        { "name": "横浜駅きた西口", "short": "きた西口", "lat": 35.467397, "lon": 139.623068, "bearing": 124 },
+        { "name": "横浜駅きた東口A", "short": "きた東口A", "lat": 35.467034, "lon": 139.624077, "bearing": 304 },
+        { "name": "横浜駅きた東口B", "short": "きた東口B", "lat": 35.466225, "lon": 139.623484, "bearing": 304 },
+        { "name": "西口", "short": "西口", "lat": 35.466322, "lon": 139.62165, "bearing": 124 },
+        { "name": "横浜駅東口", "short": "東口", "lat": 35.465356, "lon": 139.623214, "bearing": 304 },
+        { "name": "みなみ西口", "short": "みなみ西口", "lat": 35.464838, "lon": 139.620333, "bearing": 124 },
+        { "name": "横浜駅みなみ東口", "short": "みなみ東口", "lat": 35.464812, "lon": 139.622685, "bearing": 304 }
+      ],
+      "_exits": "駅の出口（#192）。OSM の entrance=yes で名前が付いているものを 2026-10-18 に Overpass で引き、そのうち駅の出口にあたるものを書き写した。地下鉄の出入口（北1〜南12、25件）・商業施設の入口（JOINUS・PORTA・cial など）・みなとみらい線新高島駅のものは出さない。「きた東口C」はきた東口B と 23m しか離れておらず、全体表示で三角が重なるので外した。出口は動かないので取り直しの仕組みは持たず、ここに持つ",
+      "_exitsBearing": "三角が向く方位（0=北、時計回り）。OSM の線路（railway=rail、駅から 250m 以内、長さで重みづけ）が方位 34.2 度なので、それに垂直な 124.2 度と 304.2 度のうち、線路の中心（35.465963, 139.622529）に向くほうを選んだ。OSM に出口の向きのデータは無く、これはこちらで決めた描き方",
+      "_railStations": "駅をタップして発車時刻を出す（#186）。印の座標と事業者の一覧は app_v1/config/geo/stations/yokohamaStation.js にあり、update.js がそこから ports.json に焼く。みなとみらい線は時刻表が配信されていないので入っていない",
+      "_ports": "横浜駅から半径およそ 450m（徒歩6分）のポート。usedByHamakokuex はルート検索（app_v1）の返却先（cycleportlist.json の YokohamaStation）",
+      "kiosk": {
+        "_comment": "展示モード（?kiosk）だけで使う横長の地図。通常の地図はほぼ正方形で、画面いっぱいに出すと左右が大きく余る",
+        "svg": "yokohama-station-kiosk.svg",
+        "bbox": {
+          "latMin": 35.461779,
+          "latMax": 35.469808,
+          "lonMin": 139.614528,
+          "lonMax": 139.632054
+        },
+        "osm": {
+          "minBuildingArea": 600
+        }
+      }
+    }
+  ]
+}

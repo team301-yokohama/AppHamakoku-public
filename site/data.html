@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>データの提供元について｜はまこく</title>
+  <meta name="description" content="はまこく Exp. / はまこく Map が使っているデータの提供元と、その利用条件の一覧です。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+1:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="band">
+    <div class="wrap">
+      <div class="band-top">
+        <span>公開用レポジトリ</span>
+        <span>データ</span>
+      </div>
+      <div class="band-mark">
+        <h1 class="about-title">データの提供元について</h1>
+      </div>
+      <p class="about-sub">本アプリが使っているデータと、その提供元の一覧です。</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <section>
+        <h2>公共交通のデータ</h2>
+        <p>
+          本アプリケーションが利用する公共交通データは、<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>において提供されるものです。
+          公共交通事業者により提供されたデータを元にしていますが、<strong>必ずしも正確・完全なものとは限りません</strong>。
+          必ず実際の公共交通情報をご確認のうえご利用ください。
+        </p>
+        <p>
+          <strong>本アプリケーションの表示内容について、公共交通事業者への直接の問合せは行わないでください。</strong>
+        </p>
+        <h3>使っているもの</h3>
+        <ul>
+          <li><strong>バスの時刻表・走行位置</strong> … 横浜市営バス、相鉄バス、神奈川中央交通</li>
+          <li><strong>駅の時刻表・運行情報・走行中の列車</strong> … JR東日本（東海道線・横須賀線・京浜東北根岸線・湘南新宿ライン）、京浜急行電鉄、東急電鉄、相模鉄道、横浜市営地下鉄ブルーライン</li>
+          <li><strong>バス停・駅の位置</strong> … 上記各事業者</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>シェアサイクルのデータ</h2>
+        <p>ポートの位置・定員と、いま借りられる台数・返せる空きです。</p>
+        <ul>
+          <li>HELLOCYCLING（OpenStreet株式会社）</li>
+          <li>ドコモ・バイクシェア（株式会社ドコモ・バイクシェア）</li>
+        </ul>
+        <p>
+          いずれも公共交通オープンデータセンターが配信する GBFS（General Bikeshare Feed Specification）形式のデータを使っています。
+          <strong>表示している台数は実際の状況と異なる場合があります。</strong>ご利用の際は各事業者の公式アプリをご確認ください。
+        </p>
+        <h3>クレジット表記</h3>
+        <!-- この2つは ODPT 基本ライセンスではなく CC BY（データカタログで確認、#125）。
+             提供者名と名称は配信元が指定したものをそのまま書く。台数・空きを加工して出しているので
+             ODPT の FAQ の「改変して利用する場合」の形に合わせている -->
+        <p>
+          この地図・アプリは、以下の著作物を改変して利用しています。
+        </p>
+        <ul class="sources">
+          <li>
+            OpenStreet株式会社 / 公共交通オープンデータ協議会、OpenStreet（ハローサイクリング） バイクシェア関連情報、
+            クリエイティブ・コモンズ・ライセンス　表示4.0国際（<a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank" rel="noopener">https://creativecommons.org/licenses/by/4.0/deed.ja</a>）
+          </li>
+          <li>
+            株式会社ドコモ・バイクシェア / 公共交通オープンデータ協議会、ドコモ・バイクシェア バイクシェア関連情報、
+            クリエイティブ・コモンズ・ライセンス　表示4.0国際（<a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank" rel="noopener">https://creativecommons.org/licenses/by/4.0/deed.ja</a>）
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>地図のデータ</h2>
+        <p>
+          地図（構内図・横浜駅まわりの図）は
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+          のデータから描いています。© OpenStreetMap contributors（<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>）。
+        </p>
+        <p>建物・道路・水面・バス停・駅の出口・商業施設の名前は、いずれも OpenStreetMap を出典としています。</p>
+      </section>
+
+      <section>
+        <h2>そのほか</h2>
+        <ul>
+          <li><strong>祝日</strong> … <a href="https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv" target="_blank" rel="noopener">内閣府「国民の祝日について」</a>の CSV</li>
+          <li><strong>運行日のカレンダー</strong> … 横浜市営バス・横浜市営地下鉄が公開する GTFS（公共交通オープンデータセンター経由）</li>
+        </ul>
+        <!-- 内閣府のコンテンツは「公共データ利用規約（第1.0版）」が当たり、出典の記載と、
+             加工した場合はその旨の記載が必要（#125 で原文を確認）。CSV を JSON に直して使っている -->
+        <p class="sources">
+          出典：内閣府ウェブサイト（<a href="https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv" target="_blank" rel="noopener">国民の祝日について</a>）、
+          PDL1.0（<a href="https://www.digital.go.jp/resources/open_data/public_data_license_v1.0" target="_blank" rel="noopener">公共データ利用規約 第1.0版</a>）を加工して作成
+        </p>
+      </section>
+
+      <section>
+        <h2>このレポジトリについて</h2>
+        <p>
+          これはアプリ「はまこく」の公開用レポジトリです。実際に運用している画面は
+          <a href="https://team301.jp" target="_blank" rel="noopener">https://team301.jp</a> です。
+        </p>
+        <p>
+          <a href="/hamakokumap/">はまこく Map</a> ／ <a href="/hamakokuex/">はまこく Exp.</a>
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>&copy; team 301</p>
+      <p><a href="/disclaimer">免責事項・クレジット</a></p>
+    </div>
+  </footer>
+</body>
+</html>

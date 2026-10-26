@@ -1,0 +1,42 @@
+{
+  "name": "hamakoku-app",
+  "version": "1.0.0",
+  "description": "横浜国立大学から横浜駅への乗換案内（はまこく Exp.）と、構内のシェアサイクルの地図（はまこく Map）",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node ./app.js",
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "update:gtfs": "node ./scripts/updateGtfs.js",
+    "update:holidays": "node ./scripts/updateHolidays.js"
+  },
+  "keywords": [
+    "hamakoku",
+    "yokohama",
+    "transit",
+    "odpt",
+    "gbfs",
+    "bikeshare"
+  ],
+  "author": "team 301",
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "dotenv": "^17.4.0",
+    "ejs": "^4.0.1",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.1.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.2"
+  }
+}

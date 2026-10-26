@@ -1,0 +1,67 @@
+{
+  "_comment": "同じ物理ポートの事業者ごとのID（feedIds）と、手で直したい値。キーは \"<source>:<stationId>\"。update.js を実行しても消えない",
+  "_feedIds": "構内4ポートは両事業者のフィードに別IDで載っている。HELLO CYCLING 側のIDをここで対応づけると、両方の台数が実データで出る（2026-10-04 時点で両フィードに存在を確認）。横浜駅の4ポートも同じく両フィードに載っている（2026-10-11 に確認）。返却枠に制限が無いポート（定員 1000 など）は update.js が自動で見分けるので、ここに書く必要はない",
+  "ports": {
+    "docomo:5357": {
+      "feedIds": {
+        "hellocycling": "25263"
+      }
+    },
+    "docomo:5355": {
+      "feedIds": {
+        "hellocycling": "25265"
+      }
+    },
+    "docomo:5354": {
+      "feedIds": {
+        "hellocycling": "25268"
+      }
+    },
+    "docomo:5356": {
+      "feedIds": {
+        "hellocycling": "25266"
+      }
+    },
+    "hellocycling:9788": {
+      "feedIds": {
+        "docomo": "4516"
+      }
+    },
+    "hellocycling:20183": {
+      "feedIds": {
+        "docomo": "3481"
+      }
+    },
+    "hellocycling:11073": {
+      "feedIds": {
+        "docomo": "4513"
+      }
+    },
+    "hellocycling:20122": {
+      "feedIds": {
+        "docomo": "2067"
+      }
+    },
+    "docomo:2064": {
+      "unlimitedReturn": true,
+      "_unlimitedReturn": "アプリで確認したところ、ラックが無く何台でも返せる（GBFS の空きは固定値で意味を持たない。docs/gbfs-port-data.md の型B）"
+    },
+    "docomo:2098": {
+      "unlimitedReturn": true,
+      "_unlimitedReturn": "アプリで確認したところ、ラックが無く何台でも返せる（GBFS の空きは固定値で意味を持たない。docs/gbfs-port-data.md の型B）"
+    },
+    "docomo:2103": {
+      "unlimitedReturn": true,
+      "_unlimitedReturn": "アプリで確認したところ、ラックが無く何台でも返せる（GBFS の空きは固定値で意味を持たない。docs/gbfs-port-data.md の型B）"
+    },
+    "docomo:623": {
+      "unlimitedReturn": true,
+      "_unlimitedReturn": "アプリで確認したところ、ラックが無く何台でも返せる（GBFS の空きは固定値で意味を持たない。docs/gbfs-port-data.md の型B）"
+    },
+    "docomo:2004": {
+      "unlimitedReturn": true,
+      "_unlimitedReturn": "アプリで確認。定員23/台数0/空き22 とフィードのつじつまは合っているが、実際は何台でも返せる"
+    }
+  },
+  "_unlimitedReturn": "unlimitedReturn はフィードから判定できないので、各社のアプリで「返却可能」の出方を見て手で入れる（docs/gbfs-port-data.md 8章）"
+}

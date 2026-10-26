@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <%- include('_meta', { meta: pageMeta('hamakokuex') }) %>
+        <!-- 書体（ADR-0017）: 13px以上は しっぽり明朝B1、12px以下は BIZ UDPゴシック -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;700&family=BIZ+UDPGothic:wght@400;700&display=swap">
+    <link rel="stylesheet" href="<%= baseUrl %>/css/styles.css">
+    <!-- アイコン（#127）。元データは brand/hamakoku/（ロゴ H2-3。別案が出たら #169） -->
+    <link rel="icon" href="<%= baseUrl %>/favicon.ico" sizes="48x48">
+    <link rel="icon" href="<%= baseUrl %>/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="<%= baseUrl %>/apple-touch-icon.png">
+    <link rel="manifest" href="<%= baseUrl %>/manifest.webmanifest">
+</head>
+<body>
+    <%# 仮データで表示しているときの帯（demo/index.js。公開用のコピーだけ）。赤は「いつもと違うこと」（ADR-0011）%>
+    <% if (locals.demoBanner) { %>
+        <div class="demo-banner" role="status">
+            <p class="demo-banner-text">実データが取得できないため、仮データで表示しています。</p>
+            <p class="demo-banner-sub">表示される時刻・遅れ・台数は作り物で、実際の運行ではありません。</p>
+        </div>
+    <% } %>
+    <header>
+        <%# ロゴ H2-3（brand/hamakoku/wordmark-exp.svg）。帯は明るいときも夜も暗い地なので、
+            紙色の字の反転版を両方で使う。コピーは置かず app.js が brand/hamakoku/ を配る（#199 と同じ）%>
+        <%# 副題は置かない。何をする画面かは、下の申込書・券売機の見出しで伝える（ADR-0032）%>
+        <h1><img class="site-wordmark" src="<%= baseUrl %>/brand/wordmark-exp-inverse.svg" alt="はまこく Exp." width="360" height="88"></h1>
+    </header>
+
+    <main>
+        <%# お知らせ（掲示板 / #137）。新しい順に2件まで出し、残りは「ほか N 件」で開く。
+            1件も無いときは欄ごと出さない。赤は「いつもと違うこと」だけ（ADR-0011）%>
+        <% if (locals.notices && notices.length > 0) { %>
+            <%
+                const visibleCount = locals.noticeVisible || 2;
+                const noticeItem = (n) => {
+                    const [, m, d] = String(n.date || '').split('-');
+                    return { cls: n.level === 'alert' ? ' is-alert' : '', when: m ? `${Number(m)}/${Number(d)}` : '', text: n.text };
+                };
+            %>
+            <section class="notice-board" aria-labelledby="notice-title">
+                <div class="notice-head">
+                    <h2 class="notice-title" id="notice-title">お知らせ</h2>
+                    <span class="notice-order">新しい順</span>
+                </div>
+                <ul class="notice-list">
+                    <% notices.slice(0, visibleCount).map(noticeItem).forEach((n) => { %>
+                        <li class="notice-item<%= n.cls %>"><time><%= n.when %></time><span><%= n.text %></span></li>
+                    <% }); %>
+                </ul>
+                <% if (notices.length > visibleCount) { %>
+                    <details class="notice-more">
+                        <summary>ほか<%= notices.length - visibleCount %>件</summary>
+                        <ul class="notice-list">
+                            <% notices.slice(visibleCount).map(noticeItem).forEach((n) => { %>
+                                <li class="notice-item<%= n.cls %>"><time><%= n.when %></time><span><%= n.text %></span></li>
+                            <% }); %>
+                        </ul>
+                    </details>
+                <% } %>
+            </section>
+        <% } %>
+        <% if (locals.errors && errors.length > 0) { %>
+            <section class="error-alert">
+                <h3>入力エラーがあります</h3>
+                <ul>
+                    <% errors.forEach((error) => { %>
+                        <li><%= error.msg %></li>
+                    <% }); %>
+                </ul>
+                <%# 検索が通らなかったときこそ報告がほしいので、ここにも導線を置く（#122）%>
+                <% if (locals.reportEnabled) { %><button type="button" class="report-link" data-report="other"><span class="report-link-box">検索の不具合を team301 に報告</span></button><% } %>
+            </section>
+        <% } %>
+
+        <% if (locals.results) { %>
+            <%
+                // 案内券の値づくりは shared/ticketView.js（EJS と React の島で共用）
+                const { buildTicket, addMinutes, spanMinutes, modeOf, rideLabel, rideDetail } = ticketView;
+                const tickets = (results.way || []).map(buildTicket);
+                const issuedAt = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000))
+                    .toTimeString().slice(0, 5);
+            %>
+            <section id="route-results" class="tickets" aria-labelledby="tickets-title">
+                <%
+                    const speedLabel = { slow: 'ゆっくり', normal: 'ふつう', littlefast: '早歩き', fast: 'ダッシュ' }[results.walkspeed] || '';
+                %>
+                <div class="tickets-head">
+                    <div>
+                        <p class="tickets-cond"><%= results.ja_dep %> 発<% if (speedLabel) { %>　<%= speedLabel %>の速さ<% } %></p>
+                        <h2 class="tickets-title" id="tickets-title"><%= results.arr %>ゆき 案内券</h2>
+                    </div>
+                    <p class="tickets-meta">
+                        <%= issuedAt %> 発行<br>着の早い順に<%= tickets.length %>枚
+                    </p>
+                </div>
+                <%# 運賃の IC／現金の切り替え（#97・ADR-0003）。入力画面には置かず、
+                    結果が出たここでワンタップで切り替える。差が出るのは相鉄線だけ %>
+                <div class="fare-toggle" id="fare-toggle">
+                    <span class="fare-toggle-label">運賃</span>
+                    <%# 丸いカプセルの中で塗りが左右に滑る。丸は「選択の印」としてだけ使う（ADR-0011）%>
+                    <div class="fare-toggle-switch">
+                        <span class="fare-toggle-thumb" aria-hidden="true"></span>
+                        <button type="button" class="fare-toggle-btn" data-fare-type="ic" aria-pressed="true">IC</button>
+                        <button type="button" class="fare-toggle-btn" data-fare-type="cash" aria-pressed="false">現金</button>
+                    </div>
+                </div>
+
+                <%# 問い合わせを交通事業者ではなく team301 に向ける（#122・ADR-0010）%>
+                <% if (locals.reportEnabled) { %><p class="report-note">表示時刻は目安です。乗り換えに間に合わなかった場合などのお問い合わせは、交通事業者ではなく team301 までお寄せください。各案内券から報告できます。</p><% } %>
+
+                <%# 夜の検索（21:00〜翌3:59）で出す「今日の最終」（#165）。
+                    まだ間に合う乗り場は1行ずつ、運行を終えた乗り場は1行にまとめる（昼だけの系統で長くならないように）。
+                    「あと〇分」は検索した時刻からの分で、画面を開いたまま減ってはいかない %>
+                <% const last = results.lastDepartures; %>
+                <% if (last && last.items.length > 0) {
+                    const running = last.items.filter((item) => !item.ended);
+                    const ended = last.items.filter((item) => item.ended);
+                    const todayJst = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000));
+                    const todayText = `${todayJst.getFullYear()}-${String(todayJst.getMonth() + 1).padStart(2, '0')}-${String(todayJst.getDate()).padStart(2, '0')}`;
+                    const [, lastMonth, lastDay] = String(results.date || '').split('-');
+                    const dayLabel = !results.date || results.date === todayText ? '今日' : `${Number(lastMonth)}月${Number(lastDay)}日`;
+                %>
+                    <section class="last-departures" aria-labelledby="last-departures-title">
+                        <h3 class="last-departures-title" id="last-departures-title"><%= dayLabel %>の最終</h3>
+                        <% if (running.length > 0) { %>
+                            <ul class="last-departures-list">
+                                <% running.forEach((item) => { %>
+                                    <%# 1段目は乗り物のアイコンと路線、2段目は残り時間を大きく、その横に乗り場と最終の発車時刻（#229）。
+                                        「あと〇分」は発車までではなく歩き始めるまでの分なので、「出発まで」は外さない %>
+                                    <li class="last-departure">
+                                        <span class="last-departure-name"><%- modeIconSvg(item.mode) %><%= item.label %></span>
+                                        <span class="last-departure-main">
+                                            <span class="last-departure-left">出発まで あと<b><%= item.minutesLeft %></b>分</span>
+                                            <span class="last-departure-time"><%= item.boardingLabel || item.boarding %> <%= item.lastDeparture %>発</span>
+                                        </span>
+                                    </li>
+                                <% }); %>
+                            </ul>
+                        <% } %>
+                        <% if (ended.length > 0) { %>
+                            <p class="last-departures-ended"><%= dayLabel === '今日' ? '本日' : 'この日' %>の運行は終了：<%= (last.endedSummary || []).join('、') %></p>
+                        <% } %>
+                    </section>
+                <% } %>
+
+                <% if (tickets.length === 0) { %>
+                    <%# 0件のときも版面は崩さず、枠は残して中身だけ一文に置き換える（指南書「状態別の表示」）%>
+                    <div class="ticket ticket--empty">
+                        <p class="ticket-empty-text">条件に合う経路が見つかりませんでした。</p>
+                        <p class="note">終バス後、または選択した手段では横浜駅まで到達できない時間帯の可能性があります。下の「経路を調整」で出発時刻または利用手段を変更してください。</p>
+                        <% if (locals.reportEnabled) { %><button type="button" class="report-link" data-report="no-result"><span class="report-link-box">経路が表示されないことを team301 に報告</span></button><% } %>
+                    </div>
+                <% } %>
+
+                <% tickets.forEach((ticket, i) => { %>
+                    <details class="ticket<%= ticket.delay > 0 ? ' is-delayed' : '' %>" name="ticket" <%= i === 0 ? 'open' : '' %>>
+                        <summary class="ticket-face">
+                            <%# 1. 番号と路線名 %>
+                            <div class="ticket-lines">
+                                <span class="ticket-no" aria-hidden="true"><%= i + 1 %></span>
+                                <span class="sr-only"><%= i + 1 %>枚目</span>
+                                <%# 乗り物はアイコンで示す。帯の模様だけだと、初めて見る人には
+                                    バスか電車か伝わらない（#132）%>
+                                <% if (ticket.rides.length === 0) { %>
+                                    <span class="ticket-line"><%- modeIconSvg('walk') %>徒歩</span>
+                                <% } %>
+                                <% ticket.rides.forEach((leg, j) => { %>
+                                    <% if (j > 0) { %><span class="ticket-line-sep" aria-hidden="true">→</span><% } %>
+                                    <span class="ticket-line<%= Number(leg.delay) > 0 ? ' is-delayed' : '' %>"><%- modeIconSvg(modeOf(leg.type)) %><%= rideLabel(leg) %><%# シェアサイクルは、借りられる事業者を色で添える（#47）%><% if (leg.type === 'sharecycle') { %><% ticketView.cycleTicketOperators(leg).forEach(function (op) { %><span class="line-op <%= op.usable ? op.className : 'is-off' %>" title="<%= op.fullName %>: <%= op.usable ? '借りられます' : 'このポートでは借りられません' %>"><%= op.name %></span><% }); %><% } %></span>
+                                <% }); %>
+                            </div>
+
+                            <%# 2. 発着時刻 %>
+                            <p class="ticket-times">
+                                <%# 徒歩・シェアサイクルだけの券は「14:28 発（随時）」。時刻は出したまま、随時であることを添える %>
+                                <span class="ticket-time"><%= ticket.departure %></span><span class="ticket-time-lbl"><%= ticket.scheduled ? '発' : '発（随時）' %></span>
+                                <span class="ticket-time-arrow" aria-hidden="true">→</span>
+                                <span class="ticket-time"><%= ticket.arrival %></span><span class="ticket-time-lbl">着</span>
+                            </p>
+
+                            <%# 3. 見込み（遅れがあるときだけ）%>
+                            <% if (ticket.delay > 0) { %>
+                                <p class="ticket-estimate">見込み <%= addMinutes(ticket.arrival, ticket.delay) %> 着（遅れ<%= ticket.delay %>分）</p>
+                            <% } %>
+
+                            <%# 4. 所要｜乗換｜運賃 %>
+                            <dl class="ticket-figures">
+                                <div>
+                                    <dt>所要</dt>
+                                    <dd class="<%= ticket.delay > 0 ? 'is-delayed' : '' %>"><%= Number(results.way[i].totaltime) + ticket.delay %>分</dd>
+                                </div>
+                                <div>
+                                    <dt>乗換</dt>
+                                    <dd><%= ticket.transfers %>回</dd>
+                                </div>
+                                <div>
+                                    <dt><%= ticket.rides.length === 1 && ticket.cycle ? '料金' : '運賃' %></dt>
+                                    <dd data-fare-ic="<%= results.way[i].fare %>" data-fare-cash="<%= results.way[i].fareCash %>"><%= results.way[i].fare %>円</dd>
+                                </div>
+                            </dl>
+
+                            <%# 5. シェアサイクルの貸出・返却（#47）
+                                借りる場所と返す場所を、行を分けて場所の名前つきで出す。
+                                どこで借りてどこに返すのかが、券を開かなくても分かるように %>
+                            <% if (ticket.cycle) { %>
+                                <dl class="ticket-cycle">
+                                    <div class="ticket-cycle-row">
+                                        <dt>借りる</dt>
+                                        <dd>
+                                            <span class="ticket-cycle-place"><%= ticketView.shortPortName(ticket.cycle.from) %></span>
+                                            <% if (ticket.cycle.rentalcapacity > 0) { %>
+                                                <span class="ticket-cycle-num">残<%= ticket.cycle.rentalcapacity %>台</span>
+                                            <% } else if (ticket.cycle.rentalcapacity === 0) { %>
+                                                <span class="alarm">なし</span>
+                                            <% } else { %>
+                                                <span class="unknown">—</span>
+                                            <% } %>
+                                        </dd>
+                                    </div>
+                                    <div class="ticket-cycle-row">
+                                        <dt>返す</dt>
+                                        <dd>
+                                            <span class="ticket-cycle-place"><%= ticketView.shortPortName(ticket.cycle.to) %></span>
+                                            <%# 返却枠に制限が無いポートは空き台数が当てにならないので、数字を出さない（#47）%>
+                                            <% if (ticket.cycle.returnCapacityUnknown) { %>
+                                                <span class="ticket-cycle-num">空きあり</span>
+                                            <% } else if (ticket.cycle.returncapacity > 0) { %>
+                                                <span class="ticket-cycle-num">空き<%= ticket.cycle.returncapacity %></span>
+                                            <% } else if (ticket.cycle.returncapacity === 0) { %>
+                                                <span class="alarm">満</span>
+                                            <% } else { %>
+                                                <span class="unknown">—</span>
+                                            <% } %>
+                                        </dd>
+                                    </div>
+                                </dl>
+                            <% } %>
+
+                            <%# 6. 手段の帯 %>
+                            <div class="ticket-band" aria-hidden="true">
+                                <% ticket.bands.forEach((band) => { %>
+                                    <span class="band-seg<%= band.kind === 'wait' ? ' is-wait' : ' mode mode--band is-' + band.kind %><%= band.delayed ? ' is-delayed' : '' %>"
+                                          style="flex: <%= band.minutes %> 1 0"></span>
+                                <% }); %>
+                            </div>
+
+                        </summary>
+
+                        <%# 開いた状態: 縦の経路図 %>
+                        <div class="ticket-detail">
+                            <div class="route-map<%= ticket.hasEstimate ? ' has-estimate' : '' %>">
+                                <%# 列の見出し。遅れがあるときだけ「見込み」の列を足す %>
+                                <div class="map-head" aria-hidden="true">
+                                    <span></span><span></span><span>定刻</span>
+                                    <% if (ticket.hasEstimate) { %><span class="map-head-est">見込み</span><% } %>
+                                </div>
+                                <% ticket.steps.forEach((leg, j) => { %>
+                                    <%
+                                        const isFirst = j === 0;
+                                        const prev = j > 0 ? ticket.steps[j - 1] : null;
+                                        const wait = prev ? spanMinutes(prev.arrivaltime, leg.departuretime) : 0;
+                                        // 地点ごとの見込み。途中の便だけ遅れて、到着は定刻ということがある
+                                        const depLate = ticket.legDelays[j].departure;
+                                        const arrLate = prev ? ticket.legDelays[j - 1].arrival : 0;
+                                    %>
+                                    <%# シェアサイクルのポートには、事業者の色で台数・空きを添える（#47）%>
+                                    <% const rentChips = leg.type === 'sharecycle' ? ticketView.cycleRentalChips(leg.rentalByOperator) : []; %>
+                                    <% const retChip = (prev && prev.type === 'sharecycle')
+                                        ? ticketView.cycleReturnChip(prev.returnByOperator, prev.returncapacity, prev.returnCapacityUnknown) : null; %>
+                                    <div class="map-point <%= isFirst ? 'is-start' : '' %>">
+                                        <span class="map-dot" aria-hidden="true"></span>
+                                        <span class="map-name"><%= isFirst ? leg.from : prev.to %><%- include('_portChips', { rentChips: rentChips, retChip: retChip }) %></span>
+                                        <span class="map-time">
+                                            <%# 着は乗り換え地点に必ず小さく出す。待ち0分なら発と同じ時刻になるが、
+                                                「何時に着いて何時に出るか」が読めるように残す %>
+                                            <% if (!isFirst) { %>
+                                                <span class="map-arr"><%= prev.arrivaltime %> 着</span>
+                                                <% if (wait > 0) { %><span class="map-wait">待ち<%= wait %>分</span><% } %>
+                                            <% } %>
+                                            <span class="map-t"><%= leg.departuretime %></span><span class="map-lbl">発</span>
+                                        </span>
+                                        <% if (ticket.hasEstimate) { %>
+                                            <span class="map-est">
+                                                <% if (!isFirst) { %>
+                                                    <span class="map-arr"><% if (arrLate > 0) { %><%= addMinutes(prev.arrivaltime, arrLate) %><% } %></span>
+                                                    <% if (wait > 0) { %><span class="map-wait">&nbsp;</span><% } %>
+                                                <% } %>
+                                                <% if (depLate > 0) { %><span class="map-t"><%= addMinutes(leg.departuretime, depLate) %></span><% } %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="map-leg">
+                                        <span class="mode mode--line is-<%= modeOf(leg.type) %><%= Number(leg.delay) > 0 ? ' is-delayed' : '' %>" aria-hidden="true"></span>
+                                        <div class="map-leg-text">
+                                            <p class="map-leg-title">
+                                                <% if (leg.type === 'walk') { %>徒歩<% } %>
+                                                <% if (leg.type === 'sharecycle') { %>シェアサイクル<% } %>
+                                                <% if (leg.type === 'bus') { %>バス<% } %>
+                                                <% if (leg.type === 'train') { %>電車<% } %>
+                                                <% if (Number(leg.time) > 0) { %> <%= leg.time %>分<% } %>
+                                            </p>
+                                            <% if (leg.type === 'bus' || leg.type === 'train') { %>
+                                                <p class="map-leg-sub">
+                                                    <%= rideDetail(leg) %><% if (leg.destination) { %>　<%= leg.destination %>ゆき<% } %>
+                                                </p>
+                                            <% } %>
+                                            <% if (Number(leg.delay) > 0) { %>
+                                                <p class="map-leg-delay">遅れ <%= leg.delay %>分</p>
+                                            <% } %>
+                                            <% if (Number(leg.fare) > 0) { %>
+                                                <p class="map-leg-fare"><%= leg.type === 'sharecycle' ? '料金' : '運賃' %> <span data-fare-ic="<%= leg.fare %>" data-fare-cash="<%= leg.fareCash ?? leg.fare %>"><%= leg.fare %>円</span><%# 車種・会員種別までは当てられないので、どの料金で出したかを書く（#47）%><% if (leg.farePlan) { %><span class="fare-plan"><%= ticketView.operatorShortName(leg.farePlan.operator) %>の<%= leg.farePlan.label %></span><% } %></p>
+                                            <% } %>
+                                        </div>
+                                    </div>
+
+                                    <% if (j === ticket.steps.length - 1) { %>
+                                        <%# 最後の区間がシェアサイクルなら、終点が返却ポート %>
+                                        <% const goalChip = leg.type === 'sharecycle'
+                                            ? ticketView.cycleReturnChip(leg.returnByOperator, leg.returncapacity, leg.returnCapacityUnknown) : null; %>
+                                        <div class="map-point is-goal">
+                                            <span class="map-dot" aria-hidden="true"></span>
+                                            <span class="map-name"><%= leg.to %><%- include('_portChips', { rentChips: [], retChip: goalChip }) %></span>
+                                            <span class="map-time">
+                                                <span class="map-t"><%= leg.arrivaltime %></span><span class="map-lbl">着</span>
+                                            </span>
+                                            <% if (ticket.hasEstimate) { %>
+                                                <span class="map-est"><% if (ticket.legDelays[j].arrival > 0) { %><span class="map-t"><%= addMinutes(leg.arrivaltime, ticket.legDelays[j].arrival) %></span><% } %></span>
+                                            <% } %>
+                                        </div>
+                                    <% } %>
+                                <% }); %>
+                            </div>
+
+                            <% if (locals.reportEnabled) { %><button type="button" class="report-link" data-report="missed" data-report-ticket="<%= ticket.index %>"><span class="report-link-box">案内内容に対するお問い合わせ</span></button><% } %>
+                            <p class="ticket-issued"><%= results.date.split("-").join(".") %> <%= issuedAt %> 発行　<%= i + 1 %>/<%= tickets.length %></p>
+                        </div>
+                    </details>
+                <% }); %>
+
+                <% if (tickets.length > 0 && tickets.length < 6) { %>
+                    <p class="note">この条件での案内は <%= tickets.length %> 件です。ほかの便は、下の「経路を調整」から出発時刻を変更して確認できます。</p>
+                <% } %>
+
+                <%# 凡例。手段は色ではなく模様で区別する（ADR-0011）%>
+                <div class="legend">
+                    <p class="legend-title">凡例</p>
+                    <ul class="legend-list">
+                        <li><span class="mode mode--swatch is-walk" aria-hidden="true"></span>徒歩</li>
+                        <li><span class="mode mode--swatch is-bus" aria-hidden="true"></span>バス</li>
+                        <li><span class="mode mode--swatch is-train" aria-hidden="true"></span>電車</li>
+                        <li><span class="mode mode--swatch is-cycle" aria-hidden="true"></span>シェアサイクル</li>
+                        <li><span class="mode mode--swatch is-wait" aria-hidden="true"></span>乗り継ぎ待ち</li>
+                        <li><span class="mode mode--swatch is-bus is-delayed" aria-hidden="true"></span>遅延区間</li>
+                    </ul>
+                    <p class="note">遅延表示対応：横浜市営バス・横浜市営地下鉄</p>
+                </div>
+                <%# データの時点（#220。ODPT ガイドライン 2.1.1・2.2.1）。台数・遅れ・位置は生成時刻、時刻表は取得日時 %>
+                <% const dataTimes = dataTimesView.buildDataTimes(results.dataTimes); %>
+                <% if (dataTimes.live.length || dataTimes.timetables.length) { %>
+                    <details class="legend-times legend-times--static">
+                        <summary>データの時刻</summary>
+                        <dl class="data-times">
+                            <% dataTimes.live.forEach((item) => { %><dt><%= item.label %></dt><dd><%= item.at %></dd><% }); %>
+                            <% dataTimes.timetables.forEach((item) => { %><dt><%= item.label %></dt><dd><%= item.at %></dd><% }); %>
+                        </dl>
+                    </details>
+                <% } %>
+            </section>
+
+            <%# PC・タブレットの出力（ダイヤ図＋詳細 / ADR-0013・0021）。
+                値づくりはサーバ側と同じ shared/ticketView.js を使うので、
+                ここでは整形済みの経路をそのまま渡す %>
+            <script type="application/json" id="route-data"><%-
+                JSON.stringify(results.way || []).replace(/</g, "\\u003c")
+            %></script>
+            <div id="diagram-island" data-issued-at="<%= issuedAt %>" data-report-enabled="<%= locals.reportEnabled ? 'true' : 'false' %>"></div>
+            <%# 広い画面では、ダイヤ図の凡例の下に React 側が同じものを出す（Diagram.jsx）。section 内の静的な方は CSS で隠す %>
+            <% if (dataTimes.live.length || dataTimes.timetables.length) { %>
+                <script type="application/json" id="data-times-data"><%- JSON.stringify(dataTimes).replace(/</g, "\\u003c") %></script>
+            <% } %>
+            <%# 報告の欄（#122）に自動で入れる検索条件 %>
+            <script type="application/json" id="report-context"><%-
+                JSON.stringify({ dep: results.dep, ja_dep: results.ja_dep, date: results.date, time: results.time, time_mode: results.time_mode, walkspeed: results.walkspeed, routepattern: results.routepattern }).replace(/</g, "\\u003c")
+            %></script>
+        <% } %>    
+
+        <form action="<%= baseUrl %>/search" method="POST" id="main-search-form">
+            <%
+                const jstDate = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000));
+                const todayStr = jstDate.toISOString().split('T')[0];
+                const timeStr = jstDate.toTimeString().split(' ')[0].slice(0,5);
+                // 前回の検索条件。初回は既定値で描く
+                const r = locals.results || null;
+                // 初回は「徒歩のみ」以外をチェック済みにする。バス＋電車＋自転車は
+                // ビットフラグ7 → APIコード1（全ルート）で、未選択と同じ結果になる。
+                // 事業者を選べるようにするには親がオンでないと筋が通らないため（#96・ADR-0029）
+                const isChecked = (key) => r ? r.routepattern.includes(key) : key !== 'walk';
+                // 事業者は既定で全部オン。検索後は送られてきたものだけオン
+                const isOpChecked = (key) => (r && r.operators) ? r.operators.includes(key) : true;
+                const MODES = [
+                    { value: 'bus', label: 'バス' },
+                    { value: 'train', label: '電車' },
+                    { value: 'cycle', label: 'シェアサイクル' },
+                ];
+            %>
+            <%# 経路申込書（ADR-0013）。上から 見出し → 出発日時 → 区間 → 利用手段
+                → 歩く速さ → 控 → 発行ボタン の順に並べる %>
+            <%# 結果を出したあとは、同じ用紙を「経路を調整」として折りたたむ（ADR-0018・0020）。
+                PC・タブレットの幅では開いたままにする（末尾のスクリプト・ADR-0024）%>
+            <%# 券売機方式（PC・タブレットの入力 / ADR-0013・0024）。
+                幅が足りないときは下の経路申込書がそのまま使われる。
+                送信する値は申込書の input が持っているので、券売機は
+                別の入力欄を作らず、同じ input を動かす %>
+            <% if (!r) { %>
+            <div id="ticket-machine-island"
+                 data-default-date="<%= todayStr %>"
+                 data-default-time="<%= timeStr %>"></div>
+            <% } %>
+            <% if (r) { %>
+            <details class="adjust" id="adjust-panel">
+                <summary class="adjust-head">
+                    <span class="adjust-title">経路を調整</span>
+                    <span id="receipt-island" data-variant="line"></span>
+                </summary>
+            <% } %>
+            <section id="search-form" class="form-sheet" aria-labelledby="form-sheet-title">
+                <% if (!r) { %>
+                <div class="sheet-head">
+                    <%# 「経路申込書」は内部と説明資料での呼び名。画面には何をする欄かをそのまま書く（ADR-0032）%>
+                    <h2 class="sheet-title" id="form-sheet-title">横浜駅への最短ルートを検索</h2>
+                </div>
+                <p class="sheet-instruction">該当するものをタップして○で囲んでください。</p>
+                <% } %>
+
+                <%# 出発日時は React の島（src/components/DepartureTime.jsx）。
+                    data-* が初期値。島を外して元に戻すときは、この div を
+                    素の入力欄に差し替えるだけでよい（ADR-0023）。 %>
+                <div class="sheet-row">
+                    <div class="sheet-row-label">出発日時</div>
+                    <div class="sheet-row-body">
+                        <div id="departure-time-island"
+                             data-variant="<%= r ? 'adjust' : 'form' %>"
+                             data-mode="<%= (r && r.time_mode === 'absolute') ? 'absolute' : 'relative' %>"
+                             data-date="<%= (r && r.date) ? r.date : todayStr %>"
+                             data-time="<%= (r && r.time) ? r.time : timeStr %>"></div>
+                        <noscript>
+                            <p class="note">出発日時の指定には JavaScript が必要です。</p>
+                        </noscript>
+                    </div>
+                </div>
+
+                <div class="sheet-row">
+                    <div class="sheet-row-label">区間</div>
+                    <div class="sheet-row-body">
+                        <%# 区間は「出発 → 到着（固定）」の2つの枠で見せ、下の格子で出発地を選ぶ（画面サンプル）%>
+                        <%
+                            const stopNames = { Library: '図書館前', RikoA: '理工A棟', Shokudo1: '第1食堂', Shokudo2: '第2食堂' };
+                            // 検索したあとは検索した出発地。はまこく Map から ?from= で来たときはそれ（#179）
+                            const dep = r ? r.dep : (locals.presetFrom || 'Library');
+                            const fromName = stopNames[dep] || '図書館前';
+                        %>
+                        <div class="segment">
+                            <p class="segment-box">
+                                <span class="segment-label">出発</span>
+                                <span class="segment-name" id="segment-from"><%= fromName %></span>
+                            </p>
+                            <span class="segment-arrow" aria-hidden="true">→</span>
+                            <p class="segment-box is-fixed">
+                                <span class="segment-label">到着（固定）</span>
+                                <span class="segment-name">横浜駅</span>
+                            </p>
+                        </div>
+                        <fieldset class="choice">
+                            <legend class="sr-only">出発地</legend>
+                            <div class="choice-grid choice-grid--stops">
+                                <input type="radio" name="departure" value="Library" id="loc-library" data-name="図書館前" <%= (dep === 'Library') ? 'checked' : '' %>>
+                                <label for="loc-library"><span class="icon-slot" aria-hidden="true"></span>図書館前</label>
+
+                                <input type="radio" name="departure" value="RikoA" id="loc-rikoa" data-name="理工A棟" <%= (dep === 'RikoA') ? 'checked' : '' %>>
+                                <label for="loc-rikoa"><span class="icon-slot" aria-hidden="true"></span>理工A棟</label>
+
+                                <input type="radio" name="departure" value="Shokudo1" id="loc-shokudo1" data-name="第1食堂" <%= (dep === 'Shokudo1') ? 'checked' : '' %>>
+                                <label for="loc-shokudo1"><span class="icon-slot" aria-hidden="true"></span>第1食堂</label>
+
+                                <input type="radio" name="departure" value="Shokudo2" id="loc-shokudo2" data-name="第2食堂" <%= (dep === 'Shokudo2') ? 'checked' : '' %>>
+                                <label for="loc-shokudo2"><span class="icon-slot" aria-hidden="true"></span>第2食堂</label>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <%# 利用手段を見出しにして、その下に交通事業者を並べる入れ子（#96・ADR-0029）。
+                    定期を持っていない事業者を外せるようにするため %>
+                <div class="sheet-row">
+                    <div class="sheet-row-label">利用手段</div>
+                    <div class="sheet-row-body">
+                        <%# 1社も選ばなかったときに「全部オフ」を送るための空値。
+                            これが無いと項目そのものが届かず「指定なし（全事業者）」に化ける %>
+                        <input type="hidden" name="operators" value="">
+                        <ul class="mode-list">
+                            <% MODES.forEach((mode) => { %>
+                            <li class="mode-group">
+                                <div class="choice-grid choice-grid--check">
+                                    <input type="checkbox" name="routepattern" value="<%= mode.value %>" id="check-<%= mode.value %>" <%= isChecked(mode.value) ? 'checked' : '' %>>
+                                    <label for="check-<%= mode.value %>"><%- modeIconSvg(mode.value) %><%= mode.label %></label>
+                                </div>
+                                <div class="choice-grid choice-grid--check operator-grid">
+                                    <%# シェアサイクルの事業者は正式名（HELLO CYCLING・ドコモ・バイクシェア）だと1行に収まらず、
+                                        バス・電車と違って2段に積まれる（#230）。案内券のチップと同じ短い名前で並べ、
+                                        正式名は読み上げとツールチップで分かるようにする %>
+                                    <% operatorsByMode[mode.value].forEach((operator) => { %>
+                                    <input type="checkbox" name="operators" value="<%= operator.key %>" id="op-<%= operator.key %>" data-mode="<%= mode.value %>" aria-label="<%= operator.name %>" <%= isOpChecked(operator.key) ? 'checked' : '' %>>
+                                    <label for="op-<%= operator.key %>" title="<%= operator.name %>"><%= operator.shortName || operator.name %></label>
+                                    <% }); %>
+                                </div>
+                            </li>
+                            <% }); %>
+                            <li class="mode-group">
+                                <div class="choice-grid choice-grid--check">
+                                    <input type="checkbox" name="routepattern" value="walk" id="check-walk" <%= isChecked('walk') ? 'checked' : '' %>>
+                                    <label for="check-walk"><%- modeIconSvg('walk') %>徒歩のみ</label>
+                                </div>
+                            </li>
+                        </ul>
+                        <%# 前回オフにした事業者を、最初の描画の前に戻す。束（app.js）を待つと
+                            一瞬「全部オン」が見えてから消える。中身は src/operatorSelect.js と同じキー %>
+                        <script nonce="<%= locals.cspNonce || "" %>">
+                            try {
+                                const off = JSON.parse(localStorage.getItem('hamakokuex:operators-off') || '[]');
+                                if (Array.isArray(off)) {
+                                    for (const key of off) {
+                                        const input = document.getElementById('op-' + key);
+                                        if (input) input.checked = false;
+                                    }
+                                }
+                            } catch (e) { /* 読めない環境では全部オンのまま */ }
+                        </script>
+                        <p class="note">選択した手段・事業者のみで経路を検索。定期券対象外の事業者はここで除外可能</p>
+                    </div>
+                </div>
+
+                <div class="sheet-row">
+                    <div class="sheet-row-label">歩く速さ</div>
+                    <div class="sheet-row-body">
+                        <%# 選んだ速さを○で囲む（画面サンプル）%>
+                        <div class="choice-grid choice-grid--speeds">
+                            <input type="radio" name="walkspeed" value="slow" id="ws-slow" <%= (r && r.walkspeed === 'slow') ? 'checked' : '' %>>
+                            <label for="ws-slow"><span class="choice-ring">ゆっくり</span></label>
+
+                            <input type="radio" name="walkspeed" value="normal" id="ws-normal" <%= (!r || r.walkspeed === 'normal') ? 'checked' : '' %>>
+                            <label for="ws-normal"><span class="choice-ring">ふつう</span></label>
+
+                            <input type="radio" name="walkspeed" value="littlefast" id="ws-littlefast" <%= (r && r.walkspeed === 'littlefast') ? 'checked' : '' %>>
+                            <label for="ws-littlefast"><span class="choice-ring">早歩き</span></label>
+
+                            <input type="radio" name="walkspeed" value="fast" id="ws-fast" <%= (r && r.walkspeed === 'fast') ? 'checked' : '' %>>
+                            <label for="ws-fast"><span class="choice-ring">ダッシュ</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="arrival" value="横浜駅">
+                <input type="hidden" name="priority" value="short">
+
+                <input type="hidden" name="departure_date" id="hidden-date">
+                <input type="hidden" name="departure_time" id="hidden-time">
+
+                <% if (!r) { %>
+                <%# 控と発行ボタンは画面の下に固定する。申込書は1画面に収まらないので、
+                    スクロールの途中でも今の条件を確かめてすぐ発行できるようにする（メンバーの指示 / #137）。
+                    下に固定すると切り離す意味が無くなるので、きりとり線は置かない %>
+                <div class="sheet-dock">
+                    <%# 控。いま選んでいる条件をまとめた確認欄で、入力に合わせて書き換わる。
+                        React の島（src/components/Receipt.jsx）。 %>
+                    <div id="receipt-island"></div>
+
+                    <button id="search-button" type="submit">この内容で乗換案内を検索</button>
+                </div>
+                <% } else { %>
+                <p class="note adjust-more-note">7枚目以降の便は、出発時刻の変更で表示</p>
+
+                <button id="search-button" type="submit">この条件で再案内</button>
+                <% } %>
+            </section>
+            <% if (r) { %></details><% } %>
+        </form>
+
+        <% if (locals.results) { %>
+            <%# 出力からは「初めから案内し直す」で入力に戻れる（ADR-0018・デザイン指南書）%>
+            <p class="restart"><a href="<%= baseUrl %>/">初めから案内し直す</a></p>
+        <% } %>
+    </main>
+    <footer>
+        <%# team301 のホームページへ（#232）%>
+        <p><a class="copy-link" href="/">&copy; team 301</a></p>
+        <%# 免責事項は team301 直下でマップと共用（#226）%>
+        <a href="/disclaimer">免責事項・クレジット</a>
+        <%# 報告・お問い合わせ（#122）。島が開くので、JS が無いときは #report に飛ぶだけ %>
+        <% if (locals.reportEnabled) { %><a href="#report" data-report="other">報告・お問い合わせ</a><% } %>
+        <%# 出典の1行（#125）。ODPT の開発者ガイドライン 3.1 が「センターで提供されるデータであること」の
+            表示を求めている。くわしい一覧は /data（#205）に置き、ここに残すのはこの1行だけ %>
+        <p class="credit-short">公共交通データ提供：公共交通オープンデータセンター</p>
+    </footer>
+    <% if (locals.reportEnabled) { %><div id="report-island" data-base="<%= baseUrl %>"></div><% } %>
+
+    <%# 検索中の表示（#60）。送信した瞬間に紙を1枚かぶせる。
+        JavaScript が動かないときは出ないだけで、検索そのものは通る %>
+    <div id="search-progress" class="progress" hidden role="status" aria-live="polite">
+        <div class="progress-sheet">
+            <p class="progress-title">検索中…</p>
+            <div class="progress-bar" aria-hidden="true"><span></span></div>
+            <%# 見出しが「検索中」なので、下は何を検索しているかだけ書く（重ねない）%>
+            <p class="note">横浜駅までの経路</p>
+        </div>
+    </div>
+    <script nonce="<%= locals.cspNonce || "" %>">
+        // 出発時刻の切り替え・クイックボタン・hidden への書き込みは
+        // React の島（src/components/DepartureTime.jsx）に移した。
+        // ここに残すのは島に関係しない素のDOM操作だけ。
+        document.addEventListener('DOMContentLoaded', () => {
+            // 「徒歩のみ」とほかの交通手段は同時に選べない（ADR-0001・Q-01）
+            const walkOnly = document.getElementById('check-walk');
+            const otherTransports = document.querySelectorAll('input[name="routepattern"]:not(#check-walk)');
+            walkOnly.addEventListener('change', () => {
+                if (walkOnly.checked) otherTransports.forEach(cb => { cb.checked = false; });
+            });
+            otherTransports.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) walkOnly.checked = false;
+                });
+            });
+
+            // 区間の「出発」の枠に、選んだ出発地の名前を出す
+            const segmentFrom = document.getElementById('segment-from');
+            document.querySelectorAll('input[name="departure"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.checked && segmentFrom) segmentFrom.textContent = radio.dataset.name;
+                });
+            });
+
+            // 経路を調整は、スマホでは閉じ、PC・タブレットの幅では開いておく
+            // （ADR-0020 の折りたたみ、幅の条件は ADR-0024）
+            const adjust = document.getElementById('adjust-panel');
+            if (adjust) {
+                const wide = window.matchMedia('(min-width: 768px) and (min-height: 600px)');
+                let wasWide = wide.matches;
+                adjust.open = wasWide;
+                // 境目をまたいだときだけ開閉を変える。スマホはキーボードや
+                // URLバーの出入りで高さが変わるので、毎回触ると勝手に閉じてしまう
+                const syncAdjust = () => {
+                    if (wide.matches === wasWide) return;
+                    wasWide = wide.matches;
+                    adjust.open = wasWide;
+                };
+                wide.addEventListener('change', syncAdjust);
+                window.addEventListener('resize', syncAdjust);
+            }
+        });
+    </script>
+    <script type="module" src="<%= baseUrl %>/js/app.js"></script>
+</body>
+</html>

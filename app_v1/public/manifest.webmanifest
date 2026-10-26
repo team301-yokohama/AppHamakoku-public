@@ -1,0 +1,16 @@
+{
+  "name": "はまこく Exp.",
+  "short_name": "はまこく Exp.",
+  "description": "横浜国大から横浜駅までの最速ルートを検索する",
+  "lang": "ja",
+  "start_url": "/hamakokuex/",
+  "scope": "/hamakokuex/",
+  "display": "browser",
+  "theme_color": "#1F4E9C",
+  "background_color": "#FFFFFF",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

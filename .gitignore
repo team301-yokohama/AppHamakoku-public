@@ -1,0 +1,51 @@
+# Node.js dependencies
+node_modules/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage output
+coverage/
+
+# OS / editor generated files
+.DS_Store
+Thumbs.db
+
+# app_v1 generated / cached API data
+/app_v1/apidata/kaikan2Yokohama/*
+/app_v1/apidata/kanachu2Yokohama/*
+/app_v1/apidata/Mitsukami2Yokohama/*
+/app_v1/apidata/ReserchCycle/*
+/app_v1/apidata/sotetsu2Yokohama/*
+/app_v1/apidata/YokohamaMunicipalBus2Yokohama/*
+
+# Keep directory-local ignore files
+!/app_v1/apidata/kaikan2Yokohama/.gitignore
+!/app_v1/apidata/kanachu2Yokohama/.gitignore
+!/app_v1/apidata/Mitsukami2Yokohama/.gitignore
+!/app_v1/apidata/ReserchCycle/.gitignore
+!/app_v1/apidata/sotetsu2Yokohama/.gitignore
+!/app_v1/apidata/YokohamaMunicipalBus2Yokohama/.gitignore
+
+# Root-level npm files are not used by this repository.
+# app_v1/package*.json and app_v2/package*.json are tracked normally.
+/package.json
+/package-lock.json
+
+# app_v2 external GTFS archives / snapshots / temporary data
+/app_v2/data/external/
+
+# 結合テスト（#109）の録画データ。本物の ODPT の応答なので、リポジトリにも実環境にも置かない（#219）
+/app_v1/test/fixtures/routes/
+
+# E2E（#110）の結果
+/app_v1/test-results/
+/app_v1/playwright-report/

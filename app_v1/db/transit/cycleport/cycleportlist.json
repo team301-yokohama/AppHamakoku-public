@@ -1,0 +1,139 @@
+{
+  "YokohamaStation": [
+    {
+      "station_id": "11073",
+      "name": "シンコウパーク横浜西口",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromShinkoParkPortToYokohama",
+      "feedIds": {
+        "docomo": "4513"
+      }
+    },
+    {
+      "station_id": "9788",
+      "name": "横浜銀行横浜駅前支店",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromHamagin_yokohamaToYokohama",
+      "feedIds": {
+        "docomo": "4516"
+      }
+    },
+    {
+      "station_id": "20122",
+      "name": "116.横浜駅西口第２駐車場",
+      "isNonPriorityPort": true,
+      "walkKeyToDestination": null,
+      "feedIds": {
+        "docomo": "2067"
+      }
+    },
+    {
+      "station_id": "20183",
+      "name": "トレゾ横浜",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromTresoPortToYokohama",
+      "feedIds": {
+        "docomo": "3481"
+      }
+    },
+    {
+      "station_id": "26785",
+      "name": "コインパーク金港町第2",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromCoinparkKinkochoPortToYokohama"
+    },
+    {
+      "station_id": "2064",
+      "source": "docomo",
+      "name": "075.横浜スカイビル前",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromYokohamaSkyBuildingPortToYokohama"
+    },
+    {
+      "station_id": "2098",
+      "source": "docomo",
+      "name": "112.横浜スカイビル前-2",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromYokohamaSkyBuilding2PortToYokohama"
+    },
+    {
+      "station_id": "2103",
+      "source": "docomo",
+      "name": "120.アソビル",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromAsobuildPortToYokohama",
+      "openingHours": "07:00-24:55"
+    },
+    {
+      "station_id": "2004",
+      "source": "docomo",
+      "name": "005.横浜ベイクォーター",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromBayQuarterPortToYokohama",
+      "openingHours": "08:00-23:00"
+    }
+  ],
+  "YNU": [
+    {
+      "station_id": "4777",
+      "name": "ファミリーマート　横浜国立大学東店",
+      "walkKeyFromOrigin": "ToFamiYNU",
+      "isNonPriorityPort": false
+    },
+    {
+      "station_id": "25263",
+      "name": "H-031.横浜国立大学西門学びの坂駐輪場",
+      "walkKeyFromOrigin": "ToNishimonPort",
+      "isNonPriorityPort": false,
+      "feedIds": {
+        "docomo": "5357"
+      }
+    },
+    {
+      "station_id": "25265",
+      "name": "H-029.横浜国立大学横浜国大橋下駐輪場",
+      "walkKeyFromOrigin": "ToYNUBridgePort",
+      "isNonPriorityPort": false,
+      "feedIds": {
+        "docomo": "5355"
+      }
+    },
+    {
+      "station_id": "25266",
+      "name": "H-030.横浜国立大学南地区駐輪場",
+      "walkKeyFromOrigin": "ToMinamiAreaPort",
+      "isNonPriorityPort": false,
+      "feedIds": {
+        "docomo": "5356"
+      }
+    },
+    {
+      "station_id": "25268",
+      "name": "H-028.横浜国立大学南門下駐輪場",
+      "walkKeyFromOrigin": "ToMinamimonPort",
+      "isNonPriorityPort": false,
+      "feedIds": {
+        "docomo": "5354"
+      }
+    }
+  ],
+  "Wadamachi": [
+    {
+      "station_id": "11074",
+      "name": "横浜銀行和田町支店",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "FromHamagin_WadamachiToWadamachi",
+      "feedIds": {
+        "docomo": "4512"
+      }
+    }
+  ],
+  "Mitsukami": [
+    {
+      "station_id": "10506",
+      "name": "三ツ沢上町駅自転車駐車場",
+      "isNonPriorityPort": false,
+      "walkKeyToDestination": "MitsukamiBusStopToStation"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+<%# シェアサイクルのポートに添える、事業者ごとの印（#47）
+    貸出: 事業者の色つきで台数を並べる（借りられない事業者は灰色）
+    返却: 色を並べたカプセル 1 つに、空き枠の数を 1 回だけ書く
+          （空きはラックを共用していて 1 つの数しか無いため） %>
+<% if (rentChips.length > 0) { %><span class="port-chips"><% rentChips.forEach(function (chip) { %><span class="port-chip <%= chip.usable ? chip.className : 'is-off' %>" title="<%= chip.fullName %>: <%= chip.count %>台"><%= chip.name %> <%= chip.count %></span><% }); %></span><% } %>
+<% if (retChip) { %><span class="port-chips"><span class="port-chip port-chip--return" title="<%= retChip.title %>"><span class="port-chip-ops" aria-hidden="true"><% retChip.operators.forEach(function (op) { %><i class="<%= op.usable ? op.className : 'is-off' %>"></i><% }); %></span><%= retChip.label %></span></span><% } %>

@@ -1,0 +1,3149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>はまこく Map｜横浜国大のシェアサイクル</title>
+  <!-- 共有されたときの見え方（#126）。og:image と og:url は絶対 URL でないと読まれない。
+       このページは file:// でも開ける静的ページなので、本番のドメインを直に書いている。
+       app_v1 側は config/site.js の SITE_ORIGIN で差し替えられる（公開先が変わったら両方直す） -->
+  <meta name="description" content="横浜国立大学構内とその周辺のシェアサイクルポートを地図で見られます。HELLO CYCLING とドコモ・バイクシェアの、いま借りられる台数を事業者ごとに表示します。">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="team 301">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:title" content="はまこく Map｜横浜国大のシェアサイクル">
+  <meta property="og:description" content="横浜国立大学構内とその周辺のシェアサイクルポートを地図で見られます。HELLO CYCLING とドコモ・バイクシェアの、いま借りられる台数を事業者ごとに表示します。">
+  <meta name="twitter:title" content="はまこく Map｜横浜国大のシェアサイクル">
+  <meta name="twitter:description" content="横浜国立大学構内とその周辺のシェアサイクルポートを地図で見られます。いま借りられる台数を事業者ごとに表示します。">
+  <!-- アイコン（#127）。元データは brand/hamakoku/。ロゴは確定（別案が出たら #169） -->
+  <link rel="icon" href="icons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="icons/manifest.webmanifest">
+  <!-- 書体は はまこく Exp. と同じ（ADR-0017）。読めなくても下の代わりの書体で出る -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=BIZ+UDPGothic:wght@400;700&display=swap">
+  <style>
+    /* ========================================================================
+       見た目は はまこく Exp. にそろえる（#177、案A 構内案内図）。
+       色・罫線は ADR-0011（白い紙に青インクの2色刷り。赤は遅れ・満・選んでいるものだけ）、
+       書体は ADR-0017（13px 以上は明朝、12px 以下はゴシック）、夜の紙は ADR-0022。
+       値は app_v1/public/css/styles.css のトークンと同じにしてある（テストで確かめている）
+       ======================================================================== */
+    :root {
+      --ink: #1F4E9C;
+      --red: #C8322B;
+      --muted: #5B6B85;
+      --field-bg: #EEF3FB;
+      --paper: #FFFFFF;
+      --on-ink: #FFFFFF;
+      --selected-bg: #DCE7F7;
+      --rule-weak-color: #A9B8D0;
+      --tint-color: rgba(31, 78, 156, 0.07);
+      /* はまこく Exp. の出発地の建物の塗り。選んだら濃くする */
+      --dep-fill: rgba(31, 78, 156, 0.14);
+      --dep-fill-on: rgba(31, 78, 156, 0.34);
+      /* 事業者の色。Exp. の案内券と同じく、台数のチップにだけ使う */
+      --hello: #F5B400;
+      --hello-fg: #221A00;
+      --docomo: #D8232A;
+      --docomo-fg: #FFFFFF;
+      --zero: #D9DEE6;
+      --zero-fg: #4A5568;
+      /* 下地の地図（OSM から描いた SVG）は彩度を落として、上に重ねる青を立たせる。
+         以前は彩度を完全に落としていたが、それだと川と大きな道路が同じ灰色になり、
+         SVG 側でどれだけ色を分けても見分けられなかったので、色味は残す（#184） */
+      /* 走っているバスは、ポートやバス停より一段下げた灰色にする（#184）。
+         横浜駅のまわりは台数が多く、青のままだと主役のポートと競る */
+      --bus-muted: #949CA8;
+      /* 駅の出口（#192）。国大の地図に描いてある門（drawArea.js の --gate）と同じ色にして、
+         「出入りするところ」であることを色でそろえる（#194） */
+      --gate: #4b6b3c;
+      --base-opacity: 0.72;
+      --base-filter: saturate(0.72) contrast(0.92) brightness(1.04);
+
+      --font-serif: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      --font-sans: "BIZ UDPGothic", "Hiragino Sans", "Meiryo", sans-serif;
+      --tap-min: 44px;
+
+      /* 地図の上の印の大きさ。地図を拡大縮小しても変わらない（画面の px） */
+      --pin: 18px;
+      --pin-font: 11px;
+      --tag-h: 15px;
+      --tag-font: 11px;
+
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --paper: #0F1A2E;
+        --ink: #CFDDF5;
+        --on-ink: #0F1A2E;
+        --red: #FF7A6B;
+        --muted: #8E9DB8;
+        --field-bg: #1C2B45;
+        --selected-bg: #22375A;
+        --rule-weak-color: #3A4B69;
+        --tint-color: rgba(207, 221, 245, 0.06);
+        --dep-fill: rgba(207, 221, 245, 0.16);
+        --dep-fill-on: rgba(207, 221, 245, 0.36);
+        --zero: #3A4B69;
+        --zero-fg: #CFDDF5;
+        --bus-muted: #79828F;
+        --gate: #b9d8a6;
+        --base-opacity: 0.74;
+        --base-filter: saturate(0.78) contrast(0.95) brightness(1.02);
+      }
+    }
+    @media (min-width: 900px) {
+      :root { --pin: 22px; --pin-font: 12px; --tag-h: 17px; --tag-font: 12px; }
+    }
+
+    * { box-sizing: border-box; }
+    /* display を指定した要素でも hidden が効くようにする */
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-serif);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    a { color: var(--ink); }
+    button { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .sans { font-family: var(--font-sans); }
+
+    .page { max-width: 1280px; margin: 0 auto; padding: 16px 16px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ---- 見出し ---- */
+    .masthead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 16px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+    .masthead h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.1em; line-height: 1.3; }
+    /* 狭い画面ではロゴと時計が2段になるので、どちらも中央にそろえる */
+    @media (max-width: 599px) {
+      .masthead { justify-content: center; }
+      .masthead .clock { justify-content: center; width: 100%; }
+    }
+    /* ワードマーク（ロゴ H2-3）。横長なので幅で決める */
+    .masthead h1 .wordmark { display: block; width: min(300px, 80vw); height: auto; }
+    .masthead h1 .wordmark.dark { display: none; }
+    @media (prefers-color-scheme: dark) {
+      .masthead h1 .wordmark.light { display: none; }
+      .masthead h1 .wordmark.dark { display: block; }
+    }
+    .clock { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-family: var(--font-sans); font-size: 12px; }
+    .clock .warn { color: var(--muted); }
+    .btn {
+      min-height: 36px; padding: 0 12px; border: 1px solid var(--ink); background: var(--paper);
+      color: var(--ink); font-family: var(--font-sans); font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .btn:disabled { opacity: 0.55; cursor: default; }
+
+    /* ---- 地図と右（スマホは下）の欄 ---- */
+    .layout { display: flex; flex-direction: column; gap: 16px; }
+    .map-col { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .side { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    @media (min-width: 900px) {
+      .layout { flex-direction: row; align-items: flex-start; }
+      .map-col { flex: 0 0 60%; }
+      .side { flex: 1 1 0; }
+    }
+
+    /* 地図（#174 の作りを引き継ぐ）: 枠（.map-viewport）の中で、下地の SVG と建物の層を重ねた
+       .map-canvas を transform で拡大縮小・移動する。ピン・バス停・バスは .map-markers に置き、
+       位置だけを地図に合わせて動かす（大きさは変えない。スマホの全体表示でも読める） */
+    .map-frame { position: relative; }
+    .map-viewport {
+      position: relative; width: 100%; overflow: hidden;
+      border: 2px solid var(--ink); background: var(--paper);
+      touch-action: none; cursor: grab; overscroll-behavior: contain;
+    }
+    .map-viewport.dragging { cursor: grabbing; }
+    .map-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+    .map-canvas > object, .map-canvas > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .map-canvas > object { pointer-events: none; filter: var(--base-filter); opacity: var(--base-opacity); }
+    .map-canvas > svg { pointer-events: none; overflow: visible; }
+    .map-markers { position: absolute; inset: 0; pointer-events: none; }
+    .map-markers > * { position: absolute; left: 0; top: 0; pointer-events: auto; }
+
+    /* 層の表示切り替え（#174）。「地図に出す」で種類ごとに消す */
+    .map-viewport.hide-ports .pin { display: none; }
+    .map-viewport.hide-stops .stop { display: none; }
+    .map-viewport.hide-buses .bus { display: none; }
+    .map-viewport.hide-stations .station { display: none; }
+    .map-viewport.hide-exits .exit { display: none; }
+
+    /* はまこく Exp. の出発地の建物（#179）。地図と一緒に拡大縮小する */
+    .dep { fill: var(--dep-fill); stroke: var(--ink); stroke-width: 1; stroke-opacity: 0.7; vector-effect: non-scaling-stroke; pointer-events: auto; cursor: pointer; }
+    .dep.on { fill: var(--dep-fill-on); }
+    .dep:focus { outline: none; }
+    .dep:focus-visible { stroke-width: 3; stroke-opacity: 1; }
+    .dep-label { width: 0; height: 0; pointer-events: none !important; }
+    .dep-label span {
+      position: absolute; left: 0; bottom: 1px; transform: translateX(-50%); white-space: nowrap;
+      font-family: var(--font-sans); font-size: 10px; color: var(--ink);
+      text-shadow: 0 0 2px var(--paper), 0 0 2px var(--paper), 0 0 2px var(--paper);
+    }
+    .dep-callout {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+      padding: 8px 30px 8px 10px; background: var(--paper); border: 2px solid var(--ink);
+      box-shadow: 0 2px 0 rgba(14, 30, 58, 0.15); z-index: 5;
+    }
+    .dep-callout b { font-family: var(--font-sans); font-size: 11px; }
+    .dep-callout a {
+      display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; background: var(--ink); color: var(--on-ink);
+      font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap;
+    }
+    .dep-callout .x { position: absolute; top: 0; right: 0; width: 28px; height: 28px; border: 0; background: none; font-size: 15px; cursor: pointer; }
+
+    /* ポート（番号の丸 ＋ 自転車のマークと台数）。名前は一覧に回す */
+    .pin { width: 0; height: 0; z-index: 3; }
+    .pin-num {
+      position: absolute; left: calc(var(--pin) / -2); top: calc(var(--pin) / -2);
+      width: var(--pin); height: var(--pin); border-radius: 50%; background: var(--ink); color: var(--on-ink);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-sans); font-size: var(--pin-font); font-weight: 700; box-shadow: 0 0 0 2px var(--paper);
+    }
+    /* はまこく Exp. のルート検索が返却先に使うポートは、番号の丸に輪を足す */
+    .pin.key .pin-num { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+    .pin-tag {
+      position: absolute; top: calc(var(--tag-h) / -2 - 2px); display: flex; align-items: center; gap: 2px;
+      background: var(--paper); border: 1px solid var(--ink); border-radius: 3px; padding: 1px 1px 1px 2px; white-space: nowrap;
+    }
+    .pin-tag svg { display: block; }
+    .pin-tag .what { font-family: var(--font-sans); font-size: 10px; padding: 0 1px; }
+    .pin.active .pin-num, .pin:hover .pin-num { background: var(--red); }
+    .chip {
+      height: var(--tag-h); line-height: var(--tag-h); padding: 0 3px; border-radius: 2px; display: inline-flex; align-items: baseline;
+      font-family: var(--font-sans); font-size: var(--tag-font); font-weight: 700; white-space: nowrap;
+    }
+    .chip small { font-size: 0.75em; margin-left: 1px; }
+    .chip.hellocycling { background: var(--hello); color: var(--hello-fg); }
+    .chip.docomo { background: var(--docomo); color: var(--docomo-fg); }
+    .chip.zero { background: var(--zero); color: var(--zero-fg); }
+    /* 返せる空きの札。数字は HELLO CYCLING の値ひとつなので、塗りは全ポート同じにして、
+       どの事業者で返せるかは数字の横の小さな印で示す。札ごと色を変えると、
+       ドコモにしか無いポートだけが赤く目立ってしまうため（#184） */
+    .chip.plain { color: var(--ink); }
+    .ops { display: inline-flex; gap: 2px; margin-left: 4px; align-self: center; }
+    .ops i { display: block; width: 8px; height: 8px; border-radius: 2px; }
+    .ops .hellocycling { background: var(--hello); }
+    .ops .docomo { background: var(--docomo); }
+    .chip.na { background: transparent; color: var(--muted); border: 1px dashed var(--muted); line-height: calc(var(--tag-h) - 2px); }
+    .pin-lead { position: absolute; height: 1px; background: var(--ink); transform-origin: 0 0; opacity: 0.7; }
+
+    /* バス停（丸い標識とポール）。押すと横浜駅方面の発車時刻（#53） */
+    .stop {
+      width: 28px; height: 28px; margin: -14px 0 0 -14px; padding: 0; border: 0; background: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; z-index: 2; color: var(--ink);
+    }
+    .stop svg { overflow: visible; filter: drop-shadow(0 0 1px var(--paper)) drop-shadow(0 0 1px var(--paper)); }
+    .stop .name {
+      position: absolute; left: 24px; top: 50%; transform: translateY(-50%); white-space: nowrap; padding: 0 3px;
+      background: color-mix(in srgb, var(--paper) 85%, transparent); font-family: var(--font-sans); font-size: 11px; font-weight: 700;
+      display: none; pointer-events: none;
+    }
+    /* 地図の右端に近いバス停は、名前を印の下に、右をそろえて出す（#234。layoutStopNames が付ける）。
+       左に出すと、すぐ左にある台数の札（構内の岡沢町では 3 の札）と重なった */
+    .stop.name-left .name { left: auto; right: 0; top: calc(100% + 2px); transform: none; }
+    .stop.on { color: var(--red); z-index: 4; }
+    .stop.on .name, .stop:focus-visible .name { display: block; }
+    @media (min-width: 900px) { .stop .name { display: block; font-size: 11px; } }
+
+    /* 駅（#186）。横浜駅は1点に6事業者が集まるので、事業者ごとに札を置く。
+       押すとその事業者の路線ごとの次の発車。印そのものは大きさ 0 で、見えているのは中の札 */
+    .station { width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; z-index: 3; color: var(--ink); }
+    /* 電車のアイコンと、その下に事業者名（#194）。塗りつぶしの札をやめ、
+       ポートの番号の丸（青地に白文字）より一段引いて、シェアサイクルとバスが先に目に入るようにする */
+    .station .mark {
+      position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+      display: flex; flex-direction: column; align-items: center; gap: 1px; white-space: nowrap;
+    }
+    .station .glyph {
+      width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 1px solid var(--ink);
+      display: flex; align-items: center; justify-content: center; color: var(--ink);
+    }
+    .station .label {
+      padding: 0 2px; background: color-mix(in srgb, var(--paper) 85%, transparent);
+      font-family: var(--font-sans); font-size: 10px; font-weight: 700; line-height: 11px; color: var(--ink);
+    }
+    /* 札をずらしたときに、本当の位置との間に引く細い線 */
+    .station .lead { position: absolute; left: 0; top: 0; width: 1px; background: var(--ink); opacity: 0.7; pointer-events: none; }
+    .station.on { z-index: 5; }
+    .station.on .glyph { background: var(--red); border-color: var(--red); color: var(--on-ink); }
+    .station.on .label { color: var(--red); }
+
+    /* 駅の出口（#192）。位置そのものが情報なので、札と違って動かさない。
+       三角の先が出口の位置に当たり、線路に垂直な向きで駅のほうを指す（向きは areas.json の bearing）。
+       名前は出しっぱなしにすると7つ並んで地図が埋まるので、押したときだけ出す */
+    .exit { width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; z-index: 2; }
+    .exit .tri {
+      position: absolute; left: -5px; top: -8px; overflow: visible;
+      transform-origin: 5px 8px;  /* 三角の先。ここを軸に回すので、回しても位置がずれない */
+      filter: drop-shadow(0 0 1px var(--paper)) drop-shadow(0 0 1px var(--paper));
+    }
+    .exit .tri polygon { fill: var(--gate); }
+    .exit .name {
+      position: absolute; left: 7px; top: -4px; transform: translateY(-50%); white-space: nowrap; padding: 0 3px;
+      background: color-mix(in srgb, var(--paper) 85%, transparent); font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+      color: var(--gate); display: none; pointer-events: none;
+    }
+    .exit.on { z-index: 4; }
+    .exit.on .tri polygon { fill: var(--red); }
+    .exit.on .name { color: var(--red); }
+    .exit.on .name, .exit:focus-visible .name { display: block; }
+
+    /* 走っているバス（#84）。丸にバスのマーク、外の小さな三角が進む向き。選んだバスは赤 */
+    .bus { width: 30px; height: 30px; margin: -15px 0 0 -15px; padding: 0; border: 0; background: none; cursor: pointer; z-index: 2; color: var(--bus-muted); }
+    .bus .dir { position: absolute; inset: 0; }
+    .bus .body {
+      position: absolute; inset: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px var(--paper);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .bus .route {
+      position: absolute; left: 25px; top: -2px; padding: 0 3px; border: 1px solid currentColor; background: var(--paper);
+      font-family: var(--font-sans); font-size: 10px; font-weight: 700; line-height: 14px; white-space: nowrap;
+    }
+    .bus.on { color: var(--red); z-index: 4; }
+
+    /* 地図の下の段。凡例と、取得時刻・拡大縮小のボタン */
+    .map-tools { display: flex; align-items: flex-start; gap: 8px 12px; }
+    .map-tools .legend { flex: 1 1 0; min-width: 0; }
+    .map-actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 10px; }
+    .map-zoom { flex: none; display: flex; border: 1px solid var(--ink); background: var(--paper); }
+    .map-zoom button { width: 40px; height: 36px; border: 0; background: none; font-family: var(--font-sans); font-size: 16px; font-weight: 700; cursor: pointer; }
+    .map-zoom button.fit { font-size: 11px; }
+    .map-zoom button + button { border-left: 1px solid var(--ink); }
+    /* スマホでは凡例が細くなるので、ボタンを上の段に分ける。
+       取得時刻は左、拡大縮小のボタンは右に離す */
+    @media (max-width: 599px) {
+      .map-tools { flex-direction: column-reverse; align-items: stretch; }
+      .map-actions { align-self: stretch; justify-content: flex-end; }
+      /* 時刻の行は幅いっぱい（時刻は左、「今すぐ更新」は右）。つまみはその下の右に回る */
+      .map-actions .clock { flex: 1 1 100%; justify-content: space-between; }
+    }
+    .map-zoom button:disabled { opacity: 0.35; cursor: default; }
+
+    /* 凡例 */
+    .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0; padding: 0; list-style: none; font-family: var(--font-sans); font-size: 12px; line-height: 1.6; }
+    .legend li { display: flex; align-items: center; gap: 5px; }
+    .legend .swatch { display: inline-block; width: 14px; height: 10px; background: var(--dep-fill-on); outline: 1px solid var(--ink); }
+    /* バスの位置が取れたかどうか（#198）。凡例の文字より一段小さく、薄く */
+    .legend .note { font-size: 11px; color: var(--muted); }
+    /* 凡例の電車の見本（#198）。地図の印（.station .glyph）と同じ形で、少し大きめ */
+    .legend .glyph {
+      width: 20px; height: 20px; border-radius: 50%; background: var(--paper); border: 1px solid var(--ink);
+      display: inline-flex; align-items: center; justify-content: center; color: var(--ink); flex: none;
+    }
+    .legend .glyph svg { width: 14px; height: 14px; }
+
+    /* ---- 欄（はまこく Exp. の申込書と同じ、項目名の列と罫線） ---- */
+    .controls { display: grid; grid-template-columns: 80px minmax(0, 1fr); border: 2px solid var(--ink); }
+    .controls > .label {
+      background: var(--field-bg); padding: 0 10px; display: flex; align-items: center;
+      font-family: var(--font-sans); font-size: 11px; font-weight: 700; border-bottom: 1px solid var(--ink);
+    }
+    .controls > .opts { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-bottom: 1px solid var(--ink); }
+    .controls > :nth-last-child(-n + 2) { border-bottom: 0; }
+    .seg {
+      min-height: 32px; padding: 0 8px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink);
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-sans); font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    /* 「地図に出す」の見本。押されている側は白抜きになるので、色は currentColor に乗せる */
+    .seg .ico { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex: none; color: currentColor; }
+    /* 見本の縦横比はそれぞれ違う（バス停は縦長）。枠に収める形で、比を保って縮める */
+    .seg .ico svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+    .seg .ico .tri { position: static; filter: none; }
+    .seg .ico .tri polygon { fill: currentColor; }
+    .seg[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+
+    .panel { border: 2px solid var(--ink); display: flex; flex-direction: column; background: var(--paper); }
+
+    /* 展示モードの動き（#189）。来場者は触らないので、めくったことが
+       目で分かるように動きをつける。ふだんの画面では動かさない */
+    @keyframes kiosk-pop {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.65); }
+      60%  { transform: scale(0.92); }
+      100% { transform: scale(1); }
+    }
+    @keyframes kiosk-ring {
+      0%   { transform: scale(0.6); opacity: 0.85; }
+      100% { transform: scale(2.6); opacity: 0; }
+    }
+    @keyframes kiosk-fade {
+      0%   { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    /* 印そのものは placeMarker が transform で位置を決めているので、
+       跳ねるのは中身（.body / svg）だけにする。位置の指定と喧嘩させない */
+    .kiosk .stop.pop svg, .kiosk .bus.pop .body, .kiosk .pin.pop .pin-num, .kiosk .dep-label.pop span,
+    .kiosk .station.pop .glyph {
+      animation: kiosk-pop 620ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    /* 跳ねるのに合わせて広がる輪。選ばれたものの位置を遠目でも拾えるようにする */
+    .kiosk .ping {
+      position: absolute; left: 0; top: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+      border: 2px solid var(--red); border-radius: 50%; pointer-events: none; z-index: 5;
+    }
+    .kiosk .ping i { display: block; width: 100%; height: 100%; border-radius: 50%; animation: kiosk-ring 900ms ease-out forwards; }
+    .kiosk #panels .panel, .kiosk .dep-callout { animation: kiosk-fade 420ms ease-out; }
+    /* 展示モードは遠目に見るので、いまめくっているものを目立たせる（#194）。
+       全部薄くすると地図が死ぬので、**同じ種類のほかの印だけ**を薄くする。
+       ふだんの画面では全部そのまま。何も選んでいない間（切り替えの一拍）も全部そのまま */
+    .kiosk .map-markers > *, .kiosk .dep { transition: opacity 320ms ease; }
+    .kiosk .map-viewport[data-focus="stop"] .stop:not(.on),
+    .kiosk .map-viewport[data-focus="bus"] .bus:not(.on),
+    .kiosk .map-viewport[data-focus="station"] .station:not(.on),
+    .kiosk .map-viewport[data-focus="dep"] .dep-label:not(.on),
+    .kiosk .map-viewport[data-focus="dep"] .dep:not(.on) { opacity: 0.4; }
+    /* 動きを控えめにする設定のときは、動かさない */
+    /* 動きを控えめにする設定のときは流さず、折り返して全部出す */
+    @media (prefers-reduced-motion: reduce) {
+      .line-head .info, .line-head .info .body { overflow: visible; }
+      .line-head .info .track { display: block; white-space: normal; animation: none; }
+      .line-head .info .track .dup { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .kiosk .stop.pop svg, .kiosk .bus.pop .body, .kiosk .pin.pop .pin-num, .kiosk .dep-label.pop span,
+      .kiosk .station.pop .glyph,
+      .kiosk .ping i, .kiosk #panels .panel, .kiosk .dep-callout { animation: none; }
+      .kiosk .ping { display: none; }
+      .kiosk .map-markers > *, .kiosk .dep { transition: none; }
+    }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; background: var(--ink); color: var(--on-ink); }
+    .panel-head h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: 0.06em; line-height: 1.4; }
+    .panel-head .x { width: var(--tap-min); height: 36px; border: 0; background: none; color: var(--on-ink); font-size: 18px; cursor: pointer; }
+    .panel-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 8px 12px; border-bottom: 1px dotted var(--muted); font-family: var(--font-sans); font-size: 12px; }
+    .panel-foot { margin: 0; padding: 6px 12px 8px; border-top: 1px dotted var(--muted); font-family: var(--font-sans); font-size: 11px; line-height: 1.7; color: var(--muted); }
+    .panel-foot a, .panel-foot button.link { color: var(--ink); }
+    .panel-empty { margin: 0; padding: 10px 12px; font-size: 14px; }
+    .late { color: var(--red); font-weight: 700; }
+    /* 遅れで訂正した時刻（#200）。もとの時刻に赤い二重線を引く */
+    .ride-row .was {
+      margin-right: 5px; color: var(--muted); font-weight: 400;
+      text-decoration: line-through double var(--red); text-decoration-thickness: 2px;
+    }
+    .muted { color: var(--muted); }
+    button.link { border: 0; background: none; padding: 0; text-decoration: underline; cursor: pointer; font-family: var(--font-sans); font-size: 11px; }
+
+    /* 発車時刻の行 */
+    .dep-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 8px 12px; border-top: 1px dotted var(--muted); }
+    .dep-row:first-of-type { border-top: 0; }
+    .dep-row .t { font-size: 24px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .dep-row .what { min-width: 0; font-size: 14px; line-height: 1.4; }
+    .dep-row .what small { display: block; font-family: var(--font-sans); font-size: 11px; color: var(--muted); }
+    .dep-row .left { font-family: var(--font-sans); font-size: 12px; font-weight: 700; text-align: right; }
+    .dep-row .left .late { display: block; font-size: 11px; }
+    /* 駅の欄（#186）。路線 → 方向 → 便 の3段で並べる */
+    /* 運行情報の本文は長い（実例: 46 字「東海道線は、高崎線内での踏切安全確認の影響で…」）。
+       折り返しを許して、路線名が潰れないようにする（#200） */
+    .line-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; padding: 9px 12px 1px; border-top: 1px solid var(--ink); font-family: var(--font-sans); font-size: 13px; font-weight: 800; }
+    .line-head > span:first-child { flex: none; }
+    .line-head:first-of-type { border-top: 0; }
+    /* 運行情報（#200）。配信なし＝灰、平常＝青、それ以外＝赤。紫は使わない（ADR-0011）。
+       本文は長いので折り返さず1行のまま流す。狭いときは自分の行に落ちてから流れる */
+    .line-head .info {
+      display: inline-flex; align-items: baseline;
+      font-family: var(--font-sans); font-size: 11px; font-weight: 700;
+      padding: 1px 5px; border: 1px solid currentColor; border-radius: 3px; line-height: 1.5;
+      flex: 0 1 auto; max-width: 100%; overflow: hidden;
+    }
+    /* 「運行情報：」は動かさない。流れるのは本文だけ */
+    .line-head .info .label { flex: none; }
+    .line-head .info .body { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+    /* 幅の下限は流すときだけ。短い文（「平常運転」）まで広げると右に余白ができる */
+    .line-head .info.flow .body { min-width: min(110px, 100%); }
+    .line-head .info .track { display: inline-flex; gap: 32px; white-space: nowrap; }
+    .line-head .info:not(.flow) .track .dup { display: none; }
+    .line-head .info.flow .track { animation: info-flow var(--dur, 10s) linear infinite; }
+    /* 駅の電光掲示板と同じで、一方向に送り続ける。1つ目が抜けると2つ目が入るので切れ目が無い */
+    @keyframes info-flow {
+      from { transform: translateX(0); }
+      to   { transform: translateX(calc(-1 * var(--shift, 0px))); }
+    }
+    .line-head .info.none { color: var(--muted); }
+    .line-head .info.ok { color: var(--ink); }
+    .line-head .info.bad { color: var(--red); }
+    .dir-head { padding: 5px 12px 0; font-family: var(--font-sans); font-size: 11px; font-weight: 700; color: var(--muted); }
+    .dir-head + .dep-row { border-top: 0; }
+    /* 1本目は押して残りを開ける行（#186）。見た目は普通の行に合わせる */
+    button.dep-row { width: 100%; border: 0; border-top: 1px dotted var(--muted); background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+    .dir-head + button.dep-row { border-top: 0; }
+    button.dep-row .chev {
+      position: absolute; right: 12px; bottom: 4px; width: 0; height: 0;
+      border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--muted);
+    }
+    button.dep-row { position: relative; padding-bottom: 12px; }
+    button.dep-row.open .chev { transform: rotate(180deg); }
+    /* 開いた残りの便は、1本目より少し弱く出す */
+    button.dep-row.open + .dep-row, button.dep-row.open + .dep-row + .dep-row { background: var(--tint-color); }
+    .dep-row .where { display: block; font-family: var(--font-sans); font-size: 11px; font-weight: 400; color: var(--muted); }
+
+    /* バスの欄の、この先止まるバス停 */
+    .ride-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 12px; }
+    .ride-row .dot { width: 10px; height: 10px; justify-self: center; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); }
+    .ride-row.next .dot { background: var(--ink); }
+    .ride-row .name { min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.35; }
+    .ride-row.terminal .name { font-size: 16px; }
+    .ride-row .name small { display: block; font-family: var(--font-sans); font-size: 11px; font-weight: 400; color: var(--muted); }
+    .ride-row .time { font-size: 18px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .ride-row.terminal .time { font-size: 24px; }
+    .ride-row .time small { font-family: var(--font-sans); font-size: 11px; font-weight: 700; margin-left: 2px; }
+
+    /* ポートの一覧 */
+    /* よく使うバス停（#146）。ポート一覧と同じ紙で、上に置く */
+    .favorites { margin-bottom: 10px; }
+    .fav-row { display: flex; align-items: stretch; border-top: 1px dotted var(--muted); }
+    .fav-row:first-of-type { border-top: 0; }
+    .fav-row .open {
+      flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline;
+      padding: 8px 4px 8px 12px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+    }
+    /* 一覧から外す。誤って押さないよう、開くほうとは離して細く置く */
+    .fav-row .drop {
+      flex: none; width: var(--tap-min); border: 0; border-left: 1px dotted var(--muted); background: none;
+      color: var(--muted); font-size: 14px; cursor: pointer;
+    }
+    .fav-row .name { font-size: 15px; font-weight: 700; }
+    .fav-row .t { font-family: var(--font-serif); font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .fav-row .left { font-family: var(--font-sans); font-size: 12px; font-weight: 700; }
+    .fav-row .muted { color: var(--muted); font-weight: 400; }
+    /* 欄の見出しに置く「よく使う」の切り替え */
+    .fav-toggle {
+      border: 1px solid var(--on-ink); background: none; color: var(--on-ink); cursor: pointer;
+      font-family: var(--font-sans); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 3px;
+    }
+    .fav-toggle.on { background: var(--on-ink); color: var(--ink); }
+
+    .list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 12px; border-bottom: 2px solid var(--ink); }
+    .list-head h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: 0.1em; }
+    .list-head span { font-family: var(--font-sans); font-size: 11px; }
+    .port-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px 12px; border-bottom: 1px dotted var(--muted); }
+    .port-row.active { background: var(--selected-bg); }
+    .port-row .n {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--on-ink);
+      display: flex; align-items: center; justify-content: center; font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    }
+    .port-row.key .n { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+    .port-row .name { font-size: 15px; font-weight: 700; line-height: 1.4; }
+    .port-row .sub { display: block; font-family: var(--font-sans); font-size: 11px; font-weight: 400; color: var(--muted); }
+    .port-row .counts { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .port-row .counts .row { display: flex; gap: 4px; align-items: baseline; }
+    /* 事業者の印は数字の横（#199）。中に入れると、2つ並んだときに一つの数に見える */
+    .count { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-sans); font-size: 11px; font-weight: 700; }
+    .count + .count { margin-left: 12px; }
+    .count i { display: block; width: 9px; height: 9px; border-radius: 2px; flex: none; }
+    .count i.hellocycling { background: var(--hello); }
+    .count i.docomo { background: var(--docomo); }
+    .count b { font-family: var(--font-serif); font-size: 17px; font-weight: 800; line-height: 1; }
+    .count.big b { font-size: 24px; }
+    .count.big i { width: 11px; height: 11px; }
+    .count.zero b { color: var(--zero-fg); }
+    .count.na { color: var(--muted); }
+    /* 貸出が止まっているとき（#201）。満と同じく赤で出す */
+    .count.closed b { color: var(--red); font-size: 15px; }
+    .count.big.closed b { font-size: 20px; }
+    .count.na i { opacity: 0.35; }
+    /* 「返す」の下に並ぶ数字が何なのか分かるように添える見出し */
+    .counts .lead { font-family: var(--font-sans); font-size: 11px; font-weight: 700; margin-right: 5px; }
+    .dock { font-family: var(--font-sans); font-size: 11px; }
+    .dock.full { color: var(--red); font-weight: 700; }
+    .dock.big { font-size: 12px; font-weight: 700; }
+    .dock.big b { font-family: var(--font-serif); font-size: 24px; font-weight: 800; margin-left: 3px; }
+    .dock .ops { margin-left: 6px; }
+    .dock.big .ops i { width: 11px; height: 11px; }
+    /* 断り書き（#199）。読み飛ばされないよう、枠で囲って肝を太字にする */
+    .more .notice { border: 1px solid var(--muted); padding: 6px 8px; }
+    .more ul.plain { margin: 4px 0 0; padding-left: 1.2em; }
+    .more ul.plain li { margin: 2px 0; }
+    /* はまこく Exp. への導線（#199） */
+    .to-exp a { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; }
+    .to-exp .wordmark { width: min(240px, 70vw); height: auto; }
+    .to-exp .wordmark.dark { display: none; }
+    @media (prefers-color-scheme: dark) {
+      .to-exp .wordmark.light { display: none; }
+      .to-exp .wordmark.dark { display: inline; }
+    }
+    /* 報告・お問い合わせ（#204）。欄（.panel）と同じ紙と罫線にそろえる */
+    .report-dialog { width: min(420px, calc(100vw - 32px)); padding: 0; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); }
+    .report-dialog::backdrop { background: rgba(14, 30, 58, 0.45); }
+    .report-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-sans); font-size: 12px; }
+    .report-lead { margin: 0; color: var(--muted); }
+    .report-field { display: flex; flex-direction: column; gap: 3px; }
+    .report-field > span { font-weight: 700; }
+    .report-field select, .report-field textarea {
+      font: inherit; color: inherit; background: var(--paper); border: 1px solid var(--ink); border-radius: 0; padding: 6px;
+    }
+    .report-field select { min-height: var(--tap-min); }
+    .report-context { margin: 0; padding: 6px 8px; background: var(--field-bg); white-space: pre-wrap; }
+    .report-error { margin: 0; color: var(--red); font-weight: 700; }
+    .report-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 12px 12px; }
+    .report-actions .btn.send { background: var(--ink); color: var(--on-ink); }
+    /* 罠の欄は人に見せない（display:none だと自動入力に無視されることがあるので、画面の外へ出す） */
+    #report-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+    /* 報告を開くボタン。欄の足や免責の中に置く */
+    .report-open { border: 0; background: none; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
+
+    .more { padding: 8px 12px 10px; font-family: var(--font-sans); font-size: 12px; line-height: 1.7; }
+    .more summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; font-weight: 700; }
+    .more p { margin: 6px 0 0; }
+    .more dl { margin: 6px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; }
+    .more dt { font-weight: 700; white-space: nowrap; }
+    .more dd { margin: 0; }
+    .more table { width: 100%; margin-top: 8px; border-collapse: collapse; }
+    .more th, .more td { text-align: left; padding: 3px 4px; border-top: 1px dotted var(--muted); vertical-align: top; }
+    .more td.num { text-align: right; white-space: nowrap; }
+
+    /* ---- 足もと ---- */
+    footer { margin-top: 8px; border-top: 1px solid var(--ink); padding-top: 10px; font-family: var(--font-sans); font-size: 12px; line-height: 1.7; }
+    footer p, footer ul { margin: 0 0 6px; }
+    footer ul { padding-left: 1.2em; }
+    footer .to-exp { font-family: var(--font-serif); font-size: 14px; font-weight: 700; }
+    .error { color: var(--red); font-weight: 700; }
+
+    /* ========================================================================
+       展示モード（#180）。/hamakokumap/?kiosk で開いたときだけ。
+       地図を画面いっぱいに出し、見出し・欄は地図の上に重ねる。操作の欄・凡例・一覧は出さない
+       ======================================================================== */
+    body.kiosk { overflow: hidden; }
+    .kiosk .page { max-width: none; height: 100vh; height: 100dvh; padding: 0; gap: 0; position: relative; }
+    /* 仮データで表示しているときの帯（#276。公開用のコピーだけ。サーバが応答の demo で知らせる）。赤は「いつもと違うこと」 */
+    .demo-banner { margin: 0 0 10px; padding: 10px 14px; border: 3px solid var(--red, #C8322B); background: var(--paper); color: var(--red, #C8322B); text-align: center; font-family: var(--font-sans, sans-serif); }
+    .demo-banner[hidden] { display: none; }
+    .demo-banner p { margin: 0; }
+    .demo-banner .demo-main { font-size: 20px; font-weight: 700; line-height: 1.5; }
+    .demo-banner .demo-sub { margin-top: 2px; font-size: 12px; }
+    .kiosk .demo-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 9; width: max-content; max-width: 40%; margin: 0; padding: 6px 12px; }
+    .kiosk .demo-banner .demo-main { font-size: 17px; }
+    .kiosk .masthead { position: absolute; top: 12px; left: 12px; z-index: 8; align-items: center; gap: 14px; padding: 6px 12px; background: color-mix(in srgb, var(--paper) 92%, transparent); border: 2px solid var(--ink); }
+    .kiosk .masthead h1 { font-size: 22px; }
+    .kiosk .masthead h1 .wordmark { width: 340px; } /* 「シェアサイクルとバスのいま」まで読める大きさ */
+    .kiosk #refresh { display: none; }
+    .kiosk .clock { display: none; }
+    .kiosk .layout { display: block; height: 100%; }
+    .kiosk .map-col { height: 100%; gap: 0; }
+    .kiosk .map-frame { height: 100%; }
+    .kiosk .map-viewport { height: 100%; aspect-ratio: auto !important; border: 0; }
+    /* 地図が画面の端まで来るので、SVG が隅に描いているもの（左下のスケールバー・右下の出典）を
+       避ける位置に置く。つまみは左の中ほど、出典は下の中央（#180） */
+    /* 展示は触らせず流すだけ（#187）。つまみは出さず、地図の上のものも押せなくする。
+       倍率と位置は URL（?zoom= / ?center=）で決める */
+    .kiosk .map-zoom { display: none !important; }
+    .kiosk .stop, .kiosk .bus, .kiosk .pin, .kiosk .dep, .kiosk .station, .kiosk .exit { pointer-events: none !important; }
+    .kiosk .panel .x, .kiosk .dep-callout .x { display: none; }
+    .kiosk .controls, .kiosk .port-list { display: none !important; }
+    /* 展示モードでも凡例は要る（一覧が出ないので、記号の意味を読む場所がここだけになる）。
+       見出しの下に縦に積む。拡大縮小のつまみは下に逃がして、ぶつからないようにする */
+    .kiosk .legend {
+      position: absolute; left: 12px; top: 124px; z-index: 8; width: max-content; max-width: 280px;
+      flex-direction: column; align-items: flex-start; gap: 6px; padding: 9px 11px; font-size: 12px;
+      background: color-mix(in srgb, var(--paper) 92%, transparent); border: 1px solid var(--ink);
+    }
+    /* データの時刻の行（#220）は、凡例の記号より一段小さく */
+    .kiosk .legend li.muted { font-size: 10px; line-height: 1.4; }
+    /* 記号の列は固定幅にして、説明の頭を揃える。時刻の行は名前と時刻を 2 列にして、時刻の頭を揃える */
+    .kiosk .legend li:not(.muted) { display: grid; grid-template-columns: 64px 1fr; column-gap: 8px; align-items: center; }
+    .kiosk .legend .lg-icon { display: flex; align-items: center; gap: 4px; }
+    .kiosk .legend li.lg-time { display: grid; grid-template-columns: 13em auto; column-gap: 6px; }
+    .kiosk .legend li.lg-updated { margin-bottom: 2px; }
+    .kiosk .side { position: absolute; top: 60px; right: 12px; width: 340px; max-height: calc(100% - 110px); overflow-y: auto; z-index: 8; }
+    /* エリアの切り替え（#197）。地図の左上に浮かせる。展示モードでは右上の別の枠を使う */
+    .area-tabs { position: absolute; top: 8px; left: 8px; z-index: 6; display: flex; background: var(--paper); border: 1px solid var(--ink); }
+    .area-tabs .seg { border: 0; }
+    .area-tabs .seg + .seg { border-left: 1px solid var(--ink); }
+    .kiosk .area-tabs { display: none; }
+    .kiosk-areas { display: none; }
+    .kiosk .kiosk-areas { display: flex; position: absolute; top: 12px; right: 12px; z-index: 8; background: var(--paper); border: 1px solid var(--ink); }
+    .kiosk .kiosk-areas .seg { border: 0; min-height: 36px; padding: 0 14px; }
+    .kiosk footer { position: absolute; left: 50%; transform: translateX(-50%); bottom: 6px; z-index: 8; margin: 0; padding: 2px 8px; border: 0; background: color-mix(in srgb, var(--paper) 90%, transparent); font-size: 10px; color: var(--muted); white-space: nowrap; }
+    /* 展示モードでは出典の1行だけ残す（ODPT の利用条件で消せない）。
+       ふだんの画面でも同じ1行を出し、くわしい一覧は /data へ送る（#205） */
+    .kiosk footer > :not(.credit-short) { display: none; }
+    /* 必ず1行に収める。狭い画面でも折り返さないよう、幅に合わせて字を小さくする（#205） */
+    .credit-short {
+      display: block; margin: 0; white-space: nowrap; color: var(--muted);
+      font-family: var(--font-sans); font-size: clamp(7px, 2.5vw, 11px);
+    }
+    /* 「© team 301」はホームページへのリンク（#232）。色は出典の1行のまま、下線でリンクと分かるようにする */
+    .credit-short .copy-link { color: inherit; }
+    /* 展示モードは触らせないので、押せる見た目にしない */
+    .kiosk .credit-short .copy-link { text-decoration: none; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <script>
+    // 展示モードは描く前に印を付けて、ふつうの画面が一瞬出るのを避ける（#180）
+    if (new URLSearchParams(location.search).has("kiosk")) document.body.classList.add("kiosk");
+  </script>
+  <div class="demo-banner" id="demo-banner" role="status" hidden>
+    <p class="demo-main">実データが取得できないため、仮データで表示しています。</p>
+    <p class="demo-sub">表示される台数・バスの位置・時刻・遅れは作り物で、実際のものではありません。</p>
+  </div>
+  <div class="page">
+    <header class="masthead">
+      <!-- ヘッダーはロゴだけ（ADR-0032）。何をする画面かは、ワードマークの「国大から、横浜駅へ。」と
+           下の欄で伝える。ロゴ H2-3（別案が出たら #169）。地は紙なので、明るいときはインクの字、
+           夜は反転を出す。コピーは置かず server/router.js が brand/hamakoku/ を配る（#199） -->
+      <h1>
+        <img class="wordmark light" src="brand/wordmark-map.svg" alt="はまこく Map" width="360" height="88">
+        <img class="wordmark dark" src="brand/wordmark-map-inverse.svg" alt="" width="360" height="88" aria-hidden="true">
+      </h1>
+    </header>
+
+    <div class="layout">
+      <div class="map-col">
+        <div class="map-frame" id="map-frame">
+          <div class="kiosk-areas" role="group" aria-label="エリア" id="kiosk-areas"></div>
+          <!-- エリアの切り替え（#197）。地図そのものを切り替えるものなので、
+               「地図に出す」「使うアプリ」とは別枠にして地図の上に置く -->
+          <div class="area-tabs" role="group" aria-label="エリア" id="area-tabs"></div>
+        </div>
+        <div class="map-tools">
+          <ul class="legend" id="legend"></ul>
+          <div class="map-actions">
+            <!-- 台数を取り直した時刻と「今すぐ更新」。地図の操作と並べて置く（展示モードでは見出しの箱へ戻す）-->
+            <div class="clock">
+              <span id="rt-status">台数を取得中…</span>
+              <button type="button" class="btn" id="refresh">今すぐ更新</button>
+            </div>
+            <!-- 地図の中に置くと端のピンを隠すので、地図の外（下）に置く -->
+            <div class="map-zoom" id="map-zoom">
+              <button type="button" data-zoom="in" aria-label="地図を拡大" title="拡大">＋</button>
+              <button type="button" data-zoom="out" aria-label="地図を縮小" title="縮小">−</button>
+              <button type="button" data-zoom="fit" aria-label="地図の全体を表示" title="全体" class="fit">全体</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side" id="side">
+        <!-- 押したものの欄。スマホでは地図のすぐ下に来るよう、操作の欄より先に置く -->
+        <div id="panels" aria-live="polite"></div>
+        <div class="controls" id="controls"></div>
+        <!-- よく使うバス停（#146）。覚えた停留所の次の発車を、開いた時点で出す -->
+        <section class="panel favorites" id="favorites" aria-label="よく使うバス停" hidden></section>
+        <section class="panel port-list" id="port-list" aria-label="ポートの空き"></section>
+      </div>
+    </div>
+
+    <footer>
+      <!-- はまこく Exp. への導線（#199）。ロゴは確定（別案が出たら #169）。brand/hamakoku/ を router が配る -->
+      <p class="to-exp">
+        <a href="/hamakokuex/">
+          <span>↓ 大学から横浜駅への帰り方はコチラから ↓</span>
+          <img class="wordmark light" src="brand/wordmark-exp.svg" alt="はまこく Exp." width="360" height="88">
+          <img class="wordmark dark" src="brand/wordmark-exp-inverse.svg" alt="" width="360" height="88" aria-hidden="true">
+        </a>
+      </p>
+      <p id="site-disclaimer"></p>
+
+      <p><a href="/disclaimer">免責事項・クレジット</a>　<a href="/data">データの提供元について</a></p>
+      <p id="updated-at"></p>
+      <!-- 出典の1行。ODPT の開発者ガイドライン 3.1 が「センターで提供されるデータであること」の表示を
+           求めている（#125 で原文を確認。場所の指定は無いが、押さないと見えない形は避けてここに残す）。
+           一覧は /data に移した（#205）。展示モードでも出す。地図そのものにも © OpenStreetMap を描いてある -->
+      <p class="credit-short"><a class="copy-link" href="/">© team 301</a>　公共交通データ提供：公共交通オープンデータセンター</p>
+    </footer>
+  </div>
+
+    <!-- 報告の欄は、下のスクリプトより前に置く（#233）。後ろに置くと、スクリプトが動く時点で
+         まだ無いので getElementById が null を返して例外になり、そのあとの処理（展示モードのめくり、
+         駅の発車時刻の読み込み）がすべて止まっていた -->
+    <!-- 報告・お問い合わせ（#204）。はまこく Exp. と同じ受け口へ送る。
+         REPORT_ENABLED=false のときは /api/report-kinds が空を返すので、入口ごと出さない -->
+    <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-title">
+      <form method="dialog" id="report-form">
+        <div class="panel-head">
+          <h2 id="report-title">team301 に報告する</h2>
+          <button type="button" class="x" value="cancel" aria-label="閉じる">×</button>
+        </div>
+        <div class="report-body">
+          <p class="report-lead">事業者へのお問い合わせはお控えください。名前や連絡先は要りません。</p>
+          <label class="report-field">
+            <span>種類</span>
+            <select id="report-kind"></select>
+          </label>
+          <label class="report-field">
+            <span>内容</span>
+            <textarea id="report-message" rows="4" maxlength="1000" placeholder="気づいたことを書いてください"></textarea>
+          </label>
+          <p class="report-context" id="report-context" hidden></p>
+          <!-- 人には見えない罠の欄（config/report.js の REPORT_HONEYPOT と同じ名前にすること） -->
+          <input type="text" id="report-honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <p class="report-error" id="report-error" hidden></p>
+        </div>
+        <div class="report-actions">
+          <button type="button" class="btn" value="cancel" id="report-cancel">やめる</button>
+          <button type="button" class="btn send" id="report-send">送る</button>
+        </div>
+      </form>
+    </dialog>
+  <!-- update.js が生成する。file:// で開いても読めるように fetch ではなく script で読み込む -->
+  <script src="ports.js"></script>
+  <script>
+    (function () {
+      const data = window.CYCLEMAP_PORTS;
+      if (!data) {
+        document.getElementById("port-list").innerHTML = '<p class="panel-empty error">ports.js がありません。<code>node --env-file=../app_v1/.env update.js</code> を実行してください。</p>';
+        return;
+      }
+
+      // ---- 設定 ----
+
+      const OPERATORS = Object.keys(data.operators);
+      const SHORT_LABEL = { hellocycling: "HELLO", docomo: "ドコモ" };
+      // エリアのタブの名前
+      const AREA_TAB = { "ynu-campus": "国大", "yokohama-station": "横浜駅" };
+      // はまこく Exp. の出発地（#179）。Exp. のフォームの departure の値 → 地図での呼び名
+      const DEPARTURE_NAME = { Library: "中央図書館", Shokudo1: "第1食堂", Shokudo2: "第2食堂", RikoA: "理工講義棟A" };
+      const DEPARTURE_SHORT = { Library: "図書館", Shokudo1: "第1食堂", Shokudo2: "第2食堂", RikoA: "理工A" };
+      const EXP_URL = "/hamakokuex/";
+
+      // 展示モード（#180）。?kiosk=秒 で、最初に戻すまでの待ち時間を変えられる（既定 60 秒）
+      const params = new URLSearchParams(location.search);
+      const KIOSK = params.has("kiosk");
+      // 展示モードは来場者に触らせず、流しておくだけにする（#187）。
+      //   ?kiosk=秒      … 中身をめくる間隔（既定 10 秒）。以前はここが「操作が無ければ最初に戻すまでの秒数」だった
+      //   ?zoom=倍       … 全体表示を 1 とした倍率。設営でプロジェクタに合わせるため
+      //   ?center=緯度,経度 … その地点を画面の中央に置く。どのエリアの地図かは bbox から決める
+      const KIOSK_STEP_MS = (Number(params.get("kiosk")) > 0 ? Number(params.get("kiosk")) : 10) * 1000;
+      const KIOSK_ZOOM = Number(params.get("zoom")) > 0 ? Number(params.get("zoom")) : 1;
+      const KIOSK_CENTER = (() => {
+        const v = (params.get("center") ?? "").split(",").map(Number);
+        return v.length === 2 && v.every(Number.isFinite) ? { lat: v[0], lon: v[1] } : null;
+      })();
+
+      // 展示モードでは、画面いっぱいに出したときに左右が余らないよう、横長の地図に差し替える（#181）。
+      // 差し替わるのは地図まわり（svg・bbox・viewBox と、そこから焼いた値）だけで、
+      // ポートは緯度経度のまま持っているので、描くときに新しい座標系へ写される
+      if (KIOSK) {
+        for (const area of data.areas) if (area.kiosk) Object.assign(area, area.kiosk);
+        // 展示モードは地図の下の段を出さない。更新時刻は凡例の先頭に出す（#220。renderLegend）
+      }
+
+      // 「使うアプリ」は見る人ごとの好みなので、ブラウザに覚えておく（展示モードでは覚えない）
+      const OP_KEY = "hamakokumap:operator";
+      const OP_CHOICES = ["both", ...OPERATORS];
+      function loadOp() {
+        if (KIOSK) return "both";
+        try { const v = localStorage.getItem(OP_KEY); if (OP_CHOICES.includes(v)) return v; } catch { /* 使えない環境 */ }
+        return "both";
+      }
+      function saveOp(v) {
+        if (KIOSK) return;
+        try { localStorage.setItem(OP_KEY, v); } catch { /* 使えない環境 */ }
+      }
+
+      // よく使うバス停（#146）。毎回地図から探させないよう、覚えた停留所の次の発車を
+      // 開いた時点で出す。端末ごとに持つ（サーバには置かない）ので、別の端末には引き継がれない。
+      // 展示モードでは覚えないし、出さない
+      const FAV_KEY = "hamakokumap:favoriteStops";
+      const FAV_MAX = 4;   // 増やしすぎると地図が押し出されるので上限を置く
+
+      function loadFavorites() {
+        if (KIOSK) return [];
+        try {
+          const raw = JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]");
+          return Array.isArray(raw) ? raw.filter((n) => typeof n === "string").slice(0, FAV_MAX) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveFavorites(names) {
+        if (KIOSK) return;
+        try { localStorage.setItem(FAV_KEY, JSON.stringify(names.slice(0, FAV_MAX))); } catch { /* 使えない環境 */ }
+      }
+
+      /** 覚えている停留所か */
+      function isFavorite(name) {
+        return state.favorites.includes(name);
+      }
+
+      /** 覚える・忘れるを切り替える。上限を超えたら古いものから落とす */
+      function toggleFavorite(name) {
+        const next = isFavorite(name)
+          ? state.favorites.filter((n) => n !== name)
+          : [...state.favorites, name].slice(-FAV_MAX);
+        state.favorites = next;
+        saveFavorites(next);
+        renderFavorites();
+        renderSelection();
+      }
+
+      // 画面の状態。sel は押したもの（バス停・バス・出発地の建物のどれか1つ）
+      // openDir は駅の欄で「残りの便も開いている」方向（#186）。"路線id:方向id" の集まり
+      const INITIAL = () => ({ area: data.areas[0].id, op: "both", layers: { ports: true, stops: true, buses: true, stations: true, exits: true }, sel: null, showAll: false, openDir: new Set() });
+      const state = Object.assign(INITIAL(), { op: loadOp(), favorites: loadFavorites() });
+
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const areaById = new Map(data.areas.map((a) => [a.id, a]));
+      const ui = new Map();   // areaId → { viewport, view, markers, pins: [...], stops: [...], buses: [...], deps: [...] }
+
+      function svgEl(tag, attrs) {
+        const el = document.createElementNS(SVG_NS, tag);
+        for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+        return el;
+      }
+      function el(tag, attrs = {}, ...children) {
+        const e = document.createElement(tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          if (v === null || v === undefined || v === false) continue;
+          if (k === "class") e.className = v;
+          else if (k === "text") e.textContent = v;
+          else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+          else e.setAttribute(k, v === true ? "" : v);
+        }
+        for (const c of children) if (c !== null && c !== undefined && c !== false) e.append(c);
+        return e;
+      }
+      function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+      function operatorLabel(id) { return (data.operators[id] && data.operators[id].label) || id; }
+      function isReturnArea(area) { return area.role === "return"; }
+      // 返却枠に制限が無いポート（#54）。空き台数の代わりに「空きあり」と出す（docs/gbfs-port-data.md）
+      function isUnlimitedReturn(port) { return port.unlimitedReturn === true; }
+      // 「使うアプリ」で選んだ事業者のうち、そのポートで使えるもの（表の並び順）
+      function shownOps(port) {
+        const ops = state.op === "both" ? OPERATORS : [state.op];
+        return ops.filter((op) => port.availableOperators.includes(op));
+      }
+      function hhmm(d) { return d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }); }
+
+      // データの時刻（生成時刻・取得日時）の表記。今日なら HH:mm、別の日なら M/D HH:mm（#220。ODPT ガイドライン 2.1.1・2.2.1）。
+      // 読めなければ null
+      function asOf(value) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (!value || isNaN(d)) return null;
+        return d.toDateString() === new Date().toDateString() ? hhmm(d) : `${d.getMonth() + 1}/${d.getDate()} ${hhmm(d)}`;
+      }
+      // 複数の時刻のうち、いちばん古いもの（「いつ時点の情報か」は、いちばん古い分に合わせて言う）
+      function oldestOf(values) {
+        const times = values.map((v) => (v ? new Date(v) : null)).filter((d) => d && !isNaN(d));
+        return times.length ? new Date(Math.min(...times)) : null;
+      }
+
+      // 緯度経度 → SVG 座標。bbox を線形に内挿するだけ（北が上なので y は反転）
+      function project(p, area) {
+        const { bbox, viewBox } = area;
+        return {
+          x: (p.lon - bbox.lonMin) / (bbox.lonMax - bbox.lonMin) * viewBox.width,
+          y: (bbox.latMax - p.lat) / (bbox.latMax - bbox.latMin) * viewBox.height,
+        };
+      }
+
+      // ---- リアルタイムの空き台数 ----
+      //
+      // まず自分のサーバ（/hamakokumap/api/status）を見る。そこが ODPT から取ってキャッシュしている。
+      // この口が無いとき（file:// や、Live Server などで静的に配ったとき）は api-public から直接読む
+      const STATUS_API = "api/status";
+      const STATUS_FEEDS = {
+        hellocycling: "https://api-public.odpt.org/api/v4/gbfs/hellocycling/station_status.json",
+        docomo: "https://api-public.odpt.org/api/v4/gbfs/docomo-cycle/station_status.json",
+      };
+      // 事業者 → { stations: Map<station_id, status>, lastUpdated: Date } | null（取得失敗）| undefined（未取得）
+      const realtime = {};
+
+      function statusFor(port, op) {
+        const feed = realtime[op];
+        const id = port.feedIds && port.feedIds[op];
+        if (!feed || !id) return null;
+        return feed.stations.get(String(id)) || null;
+      }
+
+      // 空きドックを信用してよい事業者。HELLO CYCLING の空きは「両社あわせた実際の空き」を
+      // 見ているのに対し、ドコモの空きは自社ぶんの計算値なので、足しても並べても意味が無い。
+      // 「4 / 3」のように事業者ごとに出していたのをやめ、HELLO の値だけを使う
+      // （app_v1/config/providers/cycleProviders.js の TRUSTED_DOCKS_PROVIDER と同じ考え）
+      const TRUSTED_DOCKS_OP = "hellocycling";
+
+      /**
+       * 返せる空きを1つにまとめる。
+       * @returns {{kind:"none"|"closed"|"unlimited"|"number", value?:number}}
+       */
+      function returnInfo(port, ops) {
+        const found = ops.map((op) => statusFor(port, op)).filter(Boolean);
+        if (!found.length) return { kind: "none" };
+        if (!found.some((st) => st.is_returning !== false)) return { kind: "closed" };
+        if (isUnlimitedReturn(port)) return { kind: "unlimited" };
+        // HELLO がいないポート（ドコモにしか無い）は、残った事業者の値をそのまま使う
+        const trusted = (ops.includes(TRUSTED_DOCKS_OP) && statusFor(port, TRUSTED_DOCKS_OP)) || found[0];
+        const n = trusted.num_docks_available;
+        if (n === null || n === undefined) return { kind: "none" };
+        // フィードが負の値を返すことがある（#206）。HELLO の空きは「両社あわせた実際の空き」なので、
+        // 止まっている台数がラック数を超えると負になる。返せないことに変わりはないので 0（＝満）に倒す
+        return { kind: "number", value: Math.max(0, n) };
+      }
+
+      /**
+       * その事業者でいま借りられるか（#201）。GBFS の is_renting が false のとき、
+       * 利用時間外などで貸出が止まっている。
+       *
+       * **返却側（is_returning）と見方が違う。** 返す場所（ドック）は事業者で共通なので
+       * returnInfo は全事業者が false のときだけ閉鎖にするが、自転車は事業者ごとに分かれて
+       * いるので、ポート全体ではなく**その事業者だけ**を止める
+       *
+       * @param {object | null} status - station_status の1件
+       * @returns {boolean} false なら貸出停止
+       */
+      function canRent(status) {
+        return status?.is_renting !== false;
+      }
+
+      /**
+       * どの事業者で返せるかの印。数字の見た目は全ポートで同じにして、事業者は小さな色の
+       * 四角だけで示す。札ごと色を変えると、ドコモにしか無いポートが赤く目立ってしまう
+       */
+      function opsMark(ops) {
+        return el("span", { class: "ops", "aria-hidden": "true" },
+          ...ops.map((op) => el("i", { class: op, title: `${operatorLabel(op)} で返せます` })));
+      }
+
+      // ---- 地図の拡大縮小・パン（#174 の作りを引き継ぐ）----
+      const MAX_ZOOM_FACTOR = 8;   // 全体表示の何倍まで寄れるか
+      const ZOOM_STEP = 1.6;       // ＋／− 1回ぶん
+      const DRAG_SLOP = 5;         // これ以上動いたらタップではなくドラッグ扱い（px）
+
+      /**
+       * 1つの地図の拡大縮小・パンを受け持つ。
+       * scale は「全体表示（fit）」を下限、その MAX_ZOOM_FACTOR 倍を上限にする。
+       * 縮尺が小さくて中身が枠より小さいときは、はみ出させずに中央に寄せる
+       */
+      function createMapView(area, viewport, canvas) {
+        const W = area.viewBox.width;
+        const H = area.viewBox.height;
+        const view = { viewport, scale: 1, fit: 1, tx: 0, ty: 0, atFit: true };
+
+        function clampPan() {
+          const vp = viewport.getBoundingClientRect();
+          const cw = W * view.scale;
+          const ch = H * view.scale;
+          view.tx = cw <= vp.width ? (vp.width - cw) / 2 : clamp(view.tx, vp.width - cw, 0);
+          view.ty = ch <= vp.height ? (vp.height - ch) / 2 : clamp(view.ty, vp.height - ch, 0);
+        }
+
+        function apply() {
+          clampPan();
+          canvas.style.transform = `translate(${view.tx.toFixed(2)}px, ${view.ty.toFixed(2)}px) scale(${view.scale.toFixed(4)})`;
+          view.atFit = view.scale <= view.fit * 1.001;
+          if (view.onChange) view.onChange();
+        }
+
+        // 枠の大きさが変わったら全体表示の倍率を取り直す。全体表示のままだった地図は合わせ直す
+        function measure() {
+          const vp = viewport.getBoundingClientRect();
+          if (!vp.width || !vp.height) return;
+          const wasAtFit = view.atFit;
+          view.fit = Math.min(vp.width / W, vp.height / H);
+          view.scale = wasAtFit ? view.fit : clamp(view.scale, view.fit, view.fit * MAX_ZOOM_FACTOR);
+          apply();
+        }
+
+        // 枠の中の (cx, cy) を動かさずに倍率を変える
+        function zoomAt(factor, cx, cy) {
+          const next = clamp(view.scale * factor, view.fit, view.fit * MAX_ZOOM_FACTOR);
+          if (next === view.scale) return;
+          const px = (cx - view.tx) / view.scale;
+          const py = (cy - view.ty) / view.scale;
+          view.scale = next;
+          view.tx = cx - px * next;
+          view.ty = cy - py * next;
+          apply();
+        }
+
+        function zoomBy(factor) {
+          const vp = viewport.getBoundingClientRect();
+          zoomAt(factor, vp.width / 2, vp.height / 2);
+        }
+
+        function reset() {
+          view.scale = view.fit;
+          apply();
+        }
+
+        /** 地図の座標 (x, y) が枠の中（margin の内側）に入るところまでだけ動かす */
+        function ensureVisible(x, y, margin = 40) {
+          const vp = viewport.getBoundingClientRect();
+          const sx = view.tx + x * view.scale;
+          const sy = view.ty + y * view.scale;
+          if (sx < margin) view.tx += margin - sx;
+          else if (sx > vp.width - margin) view.tx -= sx - (vp.width - margin);
+          if (sy < margin) view.ty += margin - sy;
+          else if (sy > vp.height - margin) view.ty -= sy - (vp.height - margin);
+          apply();
+        }
+
+        // ---- 指・マウスの受け付け ----
+        // 1本（マウスの左ドラッグ）で移動、2本でピンチ。
+        // touch-action: none にしてあるので、地図の上では指の動きがすべてここに来る
+        const pointers = new Map();
+        let pinchStart = null;
+        let moved = false;
+
+        // ポインタを掴む（setPointerCapture）のは、実際に動かし始めてから。
+        // pointerdown の時点で掴むと、あとから出る click まで枠に付け替わり、中の印が押せなくなる
+        function capture(id) {
+          if (viewport.hasPointerCapture(id)) return;
+          try { viewport.setPointerCapture(id); } catch { /* すでに離れている */ }
+        }
+
+        viewport.addEventListener("pointerdown", (e) => {
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          // 建物の吹き出しの上で始まったものは、中のリンクのために動かさない
+          if (e.target.closest(".dep-callout")) return;
+          pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, from: { x: e.clientX, y: e.clientY } });
+          moved = false;
+          if (pointers.size === 2) {
+            const [a, b] = [...pointers.values()];
+            pinchStart = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale: view.scale };
+            for (const id of pointers.keys()) capture(id);
+          }
+          viewport.classList.add("dragging");
+        });
+
+        viewport.addEventListener("pointermove", (e) => {
+          const prev = pointers.get(e.pointerId);
+          if (!prev) return;
+          const next = { x: e.clientX, y: e.clientY, from: prev.from };
+          const vp = viewport.getBoundingClientRect();
+
+          if (pointers.size === 1) {
+            // 押した場所から少し離れるまでは、タップのつもりとみなして動かさない
+            if (!moved && Math.hypot(next.x - prev.from.x, next.y - prev.from.y) <= DRAG_SLOP) {
+              pointers.set(e.pointerId, next);
+              return;
+            }
+            if (!moved) { moved = true; capture(e.pointerId); }
+            view.tx += next.x - prev.x;
+            view.ty += next.y - prev.y;
+            apply();
+          } else if (pointers.size === 2 && pinchStart) {
+            moved = true;
+            pointers.set(e.pointerId, next);
+            const [a, b] = [...pointers.values()];
+            const dist = Math.hypot(a.x - b.x, a.y - b.y);
+            const target = clamp(pinchStart.scale * (dist / pinchStart.dist), view.fit, view.fit * MAX_ZOOM_FACTOR);
+            zoomAt(target / view.scale, (a.x + b.x) / 2 - vp.left, (a.y + b.y) / 2 - vp.top);
+          }
+          pointers.set(e.pointerId, next);
+        });
+
+        function endPointer(e) {
+          pointers.delete(e.pointerId);
+          if (pointers.size < 2) pinchStart = null;
+          if (pointers.size === 0) viewport.classList.remove("dragging");
+        }
+        viewport.addEventListener("pointerup", endPointer);
+        viewport.addEventListener("pointercancel", endPointer);
+
+        // ドラッグし終わったところが印の上だと、クリック扱いになってしまう。動かしたときだけ握りつぶす
+        viewport.addEventListener("click", (e) => {
+          if (!moved) return;
+          moved = false;
+          e.stopPropagation();
+          e.preventDefault();
+        }, true);
+
+        // トラックパッドのピンチは ctrl 付きのホイールとして来る。素のホイールはページのスクロールに残す
+        viewport.addEventListener("wheel", (e) => {
+          if (!e.ctrlKey && !e.metaKey) return;
+          e.preventDefault();
+          const vp = viewport.getBoundingClientRect();
+          zoomAt(Math.exp(-e.deltaY / 180), e.clientX - vp.left, e.clientY - vp.top);
+        }, { passive: false });
+
+        viewport.addEventListener("dblclick", (e) => {
+          if (e.target.closest("button, a, .dep")) return;
+          const vp = viewport.getBoundingClientRect();
+          zoomAt(ZOOM_STEP, e.clientX - vp.left, e.clientY - vp.top);
+        });
+
+        // 設営時に「ここを中央に」と決められるように（#187）
+        function panTo(x, y) {
+          const vp = viewport.getBoundingClientRect();
+          view.tx = vp.width / 2 - x * view.scale;
+          view.ty = vp.height / 2 - y * view.scale;
+          apply();
+        }
+
+        Object.assign(view, { measure, zoomBy, zoomAt, reset, ensureVisible, apply, panTo });
+        if (typeof ResizeObserver === "function") new ResizeObserver(measure).observe(viewport);
+        else window.addEventListener("resize", measure);
+        return view;
+      }
+
+      // ---- 地図の上の印 ----
+
+      const BIKE_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 9 9h6l3.5 8M9 9 7.5 6H6M15 9l-3 8M12 6h3"/></svg>';
+      const STOP_SVG = '<svg width="13" height="19" viewBox="0 0 14 20" aria-hidden="true"><rect x="6.2" y="10" width="1.6" height="8.5" fill="currentColor"/><rect x="3.5" y="18" width="7" height="1.6" rx="0.8" fill="currentColor"/><circle cx="7" cy="6.5" r="6" fill="currentColor"/><circle cx="7" cy="6.5" r="3.4" fill="var(--paper)"/></svg>';
+      const BUS_GLYPH = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v12H4V5a2 2 0 0 1 2-2zM4 11h16M7 17v3M17 17v3"/></svg>';
+      // 駅（#186・#194）。電車と分かる形にして、その下に事業者名を出す
+      const TRAIN_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 10h14"/><path d="M9 17 6.5 21M15 17 17.5 21"/></svg>';
+      // 駅の出口（#192）。下の頂点が出口の位置に当たるように置く
+      const EXIT_SVG = '<svg class="tri" width="10" height="9" viewBox="0 0 10 9" aria-hidden="true"><polygon points="1,1 9,1 5,8"/></svg>';
+      const BUS_DIR = '<svg class="dir" viewBox="0 0 30 30" aria-hidden="true"><polygon points="15,0 20,7 10,7" fill="currentColor" stroke="var(--paper)" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+
+      // 印を地図の座標 (x, y) に合わせて置く（大きさは変えない）
+      function placeMarker(node, view, x, y) {
+        node.style.transform = `translate(${(view.tx + x * view.scale).toFixed(1)}px, ${(view.ty + y * view.scale).toFixed(1)}px)`;
+      }
+
+      /**
+       * 駅の札を置く（#186）。札は本当の位置から縦にずれていることがあるので、
+       * ずれた分だけ細い線を引いて、どの点の札なのかを分かるようにする
+       */
+      function placeStation(m, view) {
+        placeMarker(m.node, view, m.x, m.y);
+        m.mark.style.marginTop = `${m.dy.toFixed(1)}px`;
+        m.lead.hidden = Math.abs(m.dy) < 2;
+        m.lead.style.height = `${Math.abs(m.dy).toFixed(1)}px`;
+        m.lead.style.marginTop = `${Math.min(0, m.dy).toFixed(1)}px`;
+      }
+
+      /**
+       * 駅の札が重ならないよう、近すぎるものを縦に並べ直す（#186）。
+       *
+       * 横浜駅は JR・相鉄・京急・東急が 130m ほどの中に集まっていて、スマホの幅
+       * （縮尺 0.43 倍）では JR と相鉄が 10px しか離れない。そのままでは札が重なって読めないので、
+       * 縦に近い札をひと塊とみなし、塊の重心を中心に等間隔に置き直す。
+       * 拡大すれば自然とずれが 0 に戻る
+       */
+      function layoutStations(areaId) {
+        const u = ui.get(areaId);
+        if (!u.stations.length) return;
+        const { view } = u;
+        const PITCH = 31;   // 印の高さ（アイコン16 ＋ すき間1 ＋ 名前11）＋ すき間
+        const NEAR_X = 40;  // 横がこれより近ければ、縦に重なる相手とみなす（名前の幅ぶん）
+        const items = u.stations
+          .map((m) => ({ m, sy: view.ty + m.y * view.scale, sx: view.tx + m.x * view.scale }))
+          .sort((a, b) => a.sy - b.sy);
+        const near = (a, b) => Math.abs(a.sy - b.sy) < PITCH && Math.abs(a.sx - b.sx) < NEAR_X;
+
+        // 重なる相手が1つでもあれば同じ塊に入れる。縦の順に見るだけだと、間に遠くの札
+        // （地下鉄は 240m 西）が挟まったときに塊が切れてしまう
+        const groups = [];
+        for (const it of items) {
+          const group = groups.find((g) => g.some((other) => near(other, it)));
+          if (group) group.push(it);
+          else groups.push([it]);
+        }
+        // 塊の重心を中心に等間隔へ。重心にそろえるので、ずれる量は左右対称で小さく済む
+        for (const group of groups) {
+          const mid = group.reduce((sum, it) => sum + it.sy, 0) / group.length;
+          group.forEach((it, n) => { it.ty = mid + (n - (group.length - 1) / 2) * PITCH; });
+        }
+        // 置き直した結果、別の塊と当たることがある。縦の順に下へ押し出して離す
+        const placed = [...items].sort((a, b) => a.ty - b.ty);
+        placed.forEach((it, i) => {
+          for (let j = 0; j < i; j++) {
+            if (Math.abs(placed[j].sx - it.sx) < NEAR_X && it.ty - placed[j].ty < PITCH) it.ty = placed[j].ty + PITCH;
+          }
+        });
+        // 出口の三角（#192）は位置そのものが情報なので動かさない。代わりに駅の札をどける。
+        // 横浜駅では、相鉄の札とみなみ西口が 3px、京急の札ときた東口B が 8px しか離れていない
+        // 三角は出口の位置から EXIT_UP だけ上に立っている（先が位置に当たる）。
+        // 札は高さ MARK_H で ty が中心なので、三角の上下に MARK_H/2 ＋ すき間だけ逃がす
+        const EXIT_UP = 9;
+        const MARK_H = 28;
+        const GAP = 2;
+        const exits = u.exits.map((m) => ({ sx: view.tx + m.x * view.scale, sy: view.ty + m.y * view.scale }));
+        for (const it of items) {
+          for (const exit of exits) {
+            if (Math.abs(exit.sx - it.sx) >= NEAR_X) continue;
+            // 三角が占めるのは sy - EXIT_UP 〜 sy。札がそこに掛かっていなければ触らない
+            if (it.ty - MARK_H / 2 >= exit.sy + GAP || it.ty + MARK_H / 2 <= exit.sy - EXIT_UP - GAP) continue;
+            // 本来の位置が出口より下なら三角の下へ、そうでなければ三角の上へ逃がす
+            it.ty = it.sy >= exit.sy ? exit.sy + MARK_H / 2 + GAP : exit.sy - EXIT_UP - MARK_H / 2 - GAP;
+          }
+        }
+        for (const it of items) {
+          it.m.dy = it.ty - it.sy;
+          placeStation(it.m, view);
+        }
+      }
+
+      function positionMarkers(areaId) {
+        const u = ui.get(areaId);
+        if (!u) return;
+        const { view } = u;
+        for (const m of [...u.pins, ...u.stops, ...u.buses, ...u.depLabels, ...u.exits]) placeMarker(m.node, view, m.x, m.y);
+        layoutStations(areaId);
+        layoutStopNames(areaId);
+        if (u.callout) placeMarker(u.callout.node, view, u.callout.x, u.callout.y);
+        // 倍率が変わったときだけ、台数の札の置き場所を決め直す（パンでは変わらない）
+        if (u.laidOutAt !== view.scale && layoutPins(areaId)) u.laidOutAt = view.scale;
+      }
+
+      // バス停の名前の幅を測れないとき（スマホでは選ぶまで出していない）の目安。11px の字で1字あたり
+      const STOP_NAME_CHAR_PX = 12;
+
+      /**
+       * バス停の名前を、地図の枠からはみ出さない側に出す（#234）。
+       * 名前はふだん印の右に出すが、枠は overflow: hidden なので、右端の近く（構内の岡沢町は
+       * x=1038 / 幅 1056）では名前が切れて見えなかった。右にはみ出すときだけ印の下に出す。
+       * パンでも位置が変わるので、倍率に関係なく毎回決める（バス停は数個なので軽い）
+       */
+      function layoutStopNames(areaId) {
+        const u = ui.get(areaId);
+        const { view } = u;
+        const vpW = u.viewport.clientWidth;
+        if (!vpW) return;
+        for (const s of u.stops) {
+          const name = s.node.querySelector(".name");
+          if (!name) continue;
+          const width = name.offsetWidth || name.textContent.length * STOP_NAME_CHAR_PX;
+          const sx = view.tx + s.x * view.scale;
+          // .stop .name の left: 24px と同じ。右端に 2px の余裕を見る
+          s.node.classList.toggle("name-left", sx + 24 + width > vpW - 2);
+        }
+      }
+
+      function overlap(a, b) {
+        const w = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+        const h = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
+        return w > 0 && h > 0 ? w * h : 0;
+      }
+
+      /**
+       * 台数の札を、ほかのピン・札・枠の外と重ならない側に置く（画面の px で考える）。
+       * 右 → 左 → 右下 → 左下 → 右上 → 左上 の順に試し、重ならない候補が無ければ重なりが最小のもの。
+       * 真横から外したときは、番号の丸から札へ短い線を引く
+       */
+      function layoutPins(areaId) {
+        const u = ui.get(areaId);
+        const { view } = u;
+        const vpW = u.viewport.clientWidth;
+        // 隠れている地図は大きさが測れない。出したときにやり直す
+        if (!vpW) return false;
+        const pins = u.pins.filter((p) => p.node.style.display !== "none");
+        const r = pins.length ? pins[0].num.offsetWidth / 2 : 9;
+        const placed = pins.map((p) => {
+          const sx = view.tx + p.x * view.scale;
+          const sy = view.ty + p.y * view.scale;
+          return { x1: sx - r - 2, x2: sx + r + 2, y1: sy - r - 2, y2: sy + r + 2 };
+        });
+        const SHIFT = r + 8;
+        const candidates = [["right", 0], ["left", 0], ["right", SHIFT], ["left", SHIFT], ["right", -SHIFT], ["left", -SHIFT]];
+        for (const p of pins) {
+          const w = p.tag.offsetWidth;
+          const h = p.tag.offsetHeight;
+          const sx = view.tx + p.x * view.scale;
+          const sy = view.ty + p.y * view.scale;
+          let best = null;
+          for (const [side, dy] of candidates) {
+            const x0 = side === "right" ? r + 3 : -(r + 3 + w);
+            const rect = { x1: sx + x0, x2: sx + x0 + w, y1: sy + dy - h / 2, y2: sy + dy + h / 2 };
+            const outside = rect.x1 < 0 || rect.x2 > vpW;
+            const cost = placed.reduce((s, q) => s + overlap(rect, q), 0) + (outside ? 1e5 : 0);
+            if (!best || cost < best.cost) best = { x0, dy, rect, cost };
+            if (cost === 0) break;
+          }
+          placed.push(best.rect);
+          p.tag.style.left = `${best.x0}px`;
+          p.tag.style.top = `${best.dy - h / 2}px`;
+          if (best.dy === 0) {
+            p.lead.hidden = true;
+          } else {
+            // 丸の縁から札の手前の端の中ほどへ
+            const tx = best.x0 > 0 ? best.x0 : best.x0 + w;
+            const len = Math.hypot(tx, best.dy);
+            p.lead.hidden = false;
+            p.lead.style.width = `${len}px`;
+            p.lead.style.transform = `rotate(${Math.atan2(best.dy, tx)}rad)`;
+          }
+        }
+        return true;
+      }
+
+      function buildMap(area) {
+        const viewport = el("div", { class: "map-viewport", "data-area": area.id });
+        viewport.style.aspectRatio = `${area.viewBox.width} / ${area.viewBox.height}`;
+
+        const canvas = el("div", { class: "map-canvas" });
+        canvas.style.width = `${area.viewBox.width}px`;
+        canvas.style.height = `${area.viewBox.height}px`;
+
+        // 下地の簡略図。object にしておくと SVG 内の prefers-color-scheme が効く
+        const base = el("object", { type: "image/svg+xml", data: area.svg, "aria-hidden": "true" });
+        canvas.appendChild(base);
+
+        // はまこく Exp. の出発地の建物（#179）。地図と一緒に拡大縮小する層
+        const overlay = svgEl("svg", { viewBox: `0 0 ${area.viewBox.width} ${area.viewBox.height}`, "aria-hidden": "false" });
+        canvas.appendChild(overlay);
+        viewport.appendChild(canvas);
+
+        const markers = el("div", { class: "map-markers" });
+        viewport.appendChild(markers);
+
+        const view = createMapView(area, viewport, canvas);
+        const u = { viewport, view, markers, overlay, pins: [], stops: [], buses: [], stations: [], exits: [], depLabels: [], deps: new Map(), pings: [], callout: null, laidOutAt: null };
+        ui.set(area.id, u);
+        view.onChange = () => { positionMarkers(area.id); if (area.id === state.area) syncZoomButtons(); };
+
+        // 出発地の建物
+        for (const dep of area.departures ?? []) {
+          const name = DEPARTURE_NAME[dep.id] ?? dep.id;
+          const poly = svgEl("polygon", { class: "dep", points: dep.points, tabindex: 0, role: "button", "aria-label": `${name}から帰る（はまこく Exp. のルート検索へ）` });
+          poly.addEventListener("click", () => select({ kind: "dep", area: area.id, id: dep.id }));
+          poly.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select({ kind: "dep", area: area.id, id: dep.id }); } });
+          overlay.appendChild(poly);
+          u.deps.set(dep.id, poly);
+          const [x0, y0, x1] = dep.bbox;
+          // 建物の上の辺の中ほどに、文字の下の中央が来るようにする
+          const label = el("div", { class: "dep-label", "aria-hidden": "true" }, el("span", { text: DEPARTURE_SHORT[dep.id] ?? name }));
+          markers.appendChild(label);
+          u.depLabels.push({ id: dep.id, node: label, x: (x0 + x1) / 2, y: y0 });
+        }
+
+        // バス停（#53）。地図の SVG の中のバス停は <object> 越しで触れないので、焼き込んだ位置に印を重ねる
+        for (const stop of area.busStops ?? []) {
+          const node = el("button", { type: "button", class: "stop", "aria-label": `${stop.name}の発車時刻`, title: `${stop.name}の発車時刻` });
+          node.innerHTML = STOP_SVG;
+          node.append(el("span", { class: "name", text: stop.name }));
+          node.addEventListener("click", () => select({ kind: "stop", area: area.id, id: stop.name }));
+          markers.appendChild(node);
+          u.stops.push({ node, x: stop.x, y: stop.y, name: stop.name });
+        }
+
+        // 駅（#186）。事業者ごとに1つ。座標は odpt:Station のものを ports.json に焼いてある
+        for (const station of area.stations ?? []) {
+          const node = el("button", { type: "button", class: "station", "aria-label": `${station.name}の発車時刻`, title: `${station.name}の発車時刻` });
+          const lead = el("i", { class: "lead", hidden: true });
+          const glyph = el("span", { class: "glyph" });
+          glyph.innerHTML = TRAIN_SVG;
+          const mark = el("span", { class: "mark" }, glyph, el("span", { class: "label", text: station.short ?? station.name }));
+          node.append(lead, mark);
+          node.addEventListener("click", () => select({ kind: "station", area: area.id, id: station.id }));
+          markers.appendChild(node);
+          const { x, y } = project(station, area);
+          u.stations.push({ node, mark, lead, x, y, id: station.id, name: station.name, dy: 0 });
+        }
+
+        // 駅の出口（#192）。押すと名前が出る（広い画面では出しっぱなし）。
+        // 欄は作らない。出せるのは名前だけで、欄にするほどの中身が無いため
+        for (const exit of area.exits ?? []) {
+          const node = el("button", { type: "button", class: "exit", "aria-label": exit.name, title: exit.name });
+          node.innerHTML = EXIT_SVG;
+          // 三角は下向きに描いてあるので、方位 180 度ぶんを引いた角度だけ回す
+          if (typeof exit.bearing === "number") node.firstChild.style.transform = `rotate(${exit.bearing - 180}deg)`;
+          node.append(el("span", { class: "name", text: exit.short ?? exit.name }));
+          node.addEventListener("click", () => {
+            // 選んでいる印は1つだけにする。地図の選択（state.sel）とは別の、この層だけの見せ方
+            const already = node.classList.contains("on");
+            for (const other of u.exits) other.node.classList.remove("on");
+            node.classList.toggle("on", !already);
+          });
+          markers.appendChild(node);
+          const { x, y } = project(exit, area);
+          u.exits.push({ node, x, y, name: exit.name });
+        }
+
+        // ポート。番号は ports.json の並び順（一覧と同じ）
+        area.ports.forEach((port, i) => {
+          const { x, y } = project(port, area);
+          const node = el("div", { class: port.usedByHamakokuex ? "pin key" : "pin", "data-port": port.id });
+          const num = el("span", { class: "pin-num", text: String(i + 1), "aria-hidden": "true" });
+          const lead = el("span", { class: "pin-lead", hidden: true });
+          const tag = el("span", { class: "pin-tag" });
+          node.append(lead, num, tag);
+          node.addEventListener("mouseenter", () => setActive(port.id, true));
+          node.addEventListener("mouseleave", () => setActive(port.id, false));
+          node.addEventListener("click", () => {
+            const row = document.querySelector(`.port-row[data-port="${CSS.escape(port.id)}"]`);
+            if (!row || KIOSK) return;
+            setActive(port.id, true);
+            row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            setTimeout(() => setActive(port.id, false), 1600);
+          });
+          markers.appendChild(node);
+          u.pins.push({ node, num, tag, lead, x, y, port, n: i + 1 });
+        });
+
+        // 走っているバスの層は fetchBuses() が描く
+        return viewport;
+      }
+
+      // 地図のピンの札を、いまの台数と「使うアプリ」で描き直す
+      function renderPins() {
+        for (const area of data.areas) {
+          const u = ui.get(area.id);
+          for (const p of u.pins) {
+            const ops = shownOps(p.port);
+            // 選んだアプリで使えないポートは、地図からも一覧からも外す
+            p.node.style.display = ops.length ? "" : "none";
+            p.tag.textContent = "";
+            const title = [`${p.n}. ${p.port.displayName}`];
+            if (isReturnArea(area)) {
+              // 返す側は「返せる空き」を1つだけ出す。空きは HELLO CYCLING の値が
+              // 両社あわせた実際の空きなので、事業者ごとに割らない（returnInfo）。
+              // どちらの事業者でも返せることは札の色（黄・赤）で示す
+              p.tag.append(el("span", { class: "what", text: "空き" }));
+              const info = returnInfo(p.port, ops);
+              const chip = el("span", { class: "chip" });
+              if (info.kind === "none") { chip.classList.add("na"); chip.textContent = "−"; }
+              else if (info.kind === "closed") { chip.classList.add("zero"); chip.textContent = "不可"; }
+              else if (info.kind === "unlimited") { chip.classList.add("plain"); chip.append("あり", opsMark(ops)); }
+              else if (info.value === 0) { chip.classList.add("zero"); chip.append("0", el("small", { text: "台" })); }
+              else { chip.classList.add("plain"); chip.append(String(info.value), el("small", { text: "台" }), opsMark(ops)); }
+              title.push(info.kind === "none" ? "空き状況を取得できません"
+                : info.kind === "closed" ? "現在返却不可"
+                : info.kind === "unlimited" ? "返却枠に制限なし（何台でも返せます）"
+                : `返せる空き ${info.value} 台`);
+              for (const op of ops) {
+                const st = statusFor(p.port, op);
+                title.push(canRent(st)
+                  ? `${operatorLabel(op)}: 借りられる自転車 ${st?.num_bikes_available ?? "−"} 台`
+                  : `${operatorLabel(op)}: 現在貸出不可`);
+              }
+              p.tag.append(chip);
+            } else {
+              p.tag.insertAdjacentHTML("beforeend", BIKE_SVG);
+              for (const op of ops) {
+                const st = statusFor(p.port, op);
+                const chip = el("span", { class: "chip" });
+                if (!st) {
+                  chip.classList.add("na");
+                  chip.textContent = "−";
+                  title.push(`${operatorLabel(op)}: 台数を取得できません`);
+                } else if (!canRent(st)) {
+                  // 利用時間外などで貸出が止まっている（#201）
+                  chip.classList.add("zero");
+                  chip.textContent = "不可";
+                  title.push(`${operatorLabel(op)}: 現在貸出不可`);
+                } else {
+                  const n = st.num_bikes_available;
+                  chip.classList.add(n === 0 ? "zero" : op);
+                  chip.append(String(n ?? "?"), el("small", { text: "台" }));
+                  title.push(`${operatorLabel(op)}: 借りられる自転車 ${n ?? "?"} 台`);
+                }
+                p.tag.append(chip);
+              }
+            }
+            p.node.title = title.join("\n");
+          }
+          u.laidOutAt = null;
+          positionMarkers(area.id);
+        }
+      }
+
+      // ピンと一覧の行を同時に目立たせる
+      function setActive(id, on) {
+        document.querySelectorAll(`[data-port="${CSS.escape(id)}"]`).forEach((e) => e.classList.toggle("active", on));
+      }
+
+      // ---- 操作の欄 ----
+
+      function segButton(label, pressed, onClick, iconHtml) {
+        const node = el("button", { type: "button", class: "seg", "aria-pressed": String(pressed), onclick: onClick });
+        if (iconHtml) {
+          const ico = el("span", { class: "ico", "aria-hidden": "true" });
+          ico.innerHTML = iconHtml;
+          node.append(ico);
+        }
+        node.append(label);
+        return node;
+      }
+
+      /**
+       * 「地図に出す」の見本（#197）。地図の印と同じ形を添えて、どれを消しているかを分かるようにする。
+       * バスは丸の中にマークを置いているが、ここでは枠のぶんが小さすぎるのでマークだけにする
+       */
+      const LAYER_ICON = {
+        ports: BIKE_SVG,
+        stops: STOP_SVG,
+        buses: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v12H4V5a2 2 0 0 1 2-2zM4 11h16M7 17v3M17 17v3"/></svg>',
+        stations: TRAIN_SVG,
+        exits: EXIT_SVG,
+      };
+
+      function renderControls() {
+        const box = document.getElementById("controls");
+        box.textContent = "";
+        box.append(
+          el("span", { class: "label", id: "lbl-layers", text: "地図に出す" }),
+          el("div", { class: "opts", role: "group", "aria-labelledby": "lbl-layers" },
+            ...[["ports", "シェアサイクル"], ["stops", "バス停"], ["buses", "バス"], ["stations", "鉄道情報"], ["exits", "出口"]]
+              // そのエリアに無いものは切り替えを出さない（横浜駅にバス停は無い、#202）
+              .filter(([k]) => (k !== "buses" || busAvailable) && (k !== "stations" || trainsAvailable)
+                && (k !== "exits" || (areaById.get(state.area).exits ?? []).length)
+                && (k !== "stops" || (areaById.get(state.area).busStops ?? []).length))
+              .map(([k, label]) => segButton(label, state.layers[k], () => toggleLayer(k), LAYER_ICON[k]))),
+          el("span", { class: "label", id: "lbl-op", text: "使うアプリ" }),
+          el("div", { class: "opts", role: "group", "aria-labelledby": "lbl-op" },
+            ...OP_CHOICES.map((op) => segButton(op === "both" ? "両方" : operatorLabel(op), state.op === op, () => setOp(op)))),
+        );
+        // エリアの切り替えは地図の上（#197）。展示モードは右上の別の枠を使う
+        for (const id of ["area-tabs", "kiosk-areas"]) {
+          const box = document.getElementById(id);
+          box.textContent = "";
+          for (const a of data.areas) box.append(segButton(AREA_TAB[a.id] ?? a.name, state.area === a.id, () => setArea(a.id)));
+        }
+      }
+
+      // はまこく Exp. の返却先を示す「輪つきの番号」の見本（#198）
+      function keyPinSwatch() {
+        const s = el("span", { class: "pin key" });
+        s.style.cssText = "position: relative; width: 22px; height: 22px; display: inline-block";
+        const n = el("span", { class: "pin-num", text: "1" });
+        n.style.cssText = "left: 2px; top: 2px; width: 18px; height: 18px";
+        s.append(n);
+        return s;
+      }
+
+      // 「くわしく」に出す、データごとの取得時刻の表（#220。ODPT ガイドライン 2.1.1・2.2.1）。
+      // 動的データ（台数・位置・遅れ）は生成時刻（時点）、時刻表は取得日時
+      function dataTimeRows() {
+        const rows = [];
+        const CYCLE_NAMES = { hellocycling: "HELLO", docomo: "ドコモ" };
+        for (const op of Object.keys(STATUS_FEEDS)) {
+          const at = realtime[op]?.lastUpdated;
+          rows.push([`シェアサイクル(${CYCLE_NAMES[op] ?? operatorLabel(op)})`, "シェアサイクル事業者のデータ（GBFS）", asOf(at) ? `${asOf(at)} 時点` : "−"]);
+        }
+        // 位置と遅れは同じ上流（odpt:Bus）を別々に取るので、時刻がずれうる。古いほうを出す（新しく見せない）
+        const trainLines = (trains?.operators ?? []).flatMap((op) => op.lines);
+        const busLive = asOf(oldestOf([busAvailable ? busReportedAt : null, timetable?.delayAsOf]));
+        rows.push(["バスリアルタイム情報", "ODPT 市営バスの位置情報", busLive ? `${busLive} 時点` : "−"]);
+        // 相鉄バス・神奈中バスの時刻表は仮データのあいだは出さない（取得日時は記録している）
+        const busTimetable = asOf(timetable?.timetableAsOf?.municipal);
+        rows.push(["バス時刻表情報", "ODPT 市営バスの時刻表", busTimetable ? `${busTimetable} 取得` : "−"]);
+        const trainLive = asOf(oldestOf(trainLines.flatMap((l) => [l.delayAsOf, l.infoAsOf])));
+        rows.push(["鉄道リアルタイム情報", "ODPT 列車の位置・運行情報", trainLive ? `${trainLive} 時点` : "−"]);
+        const trainTimetable = asOf(oldestOf(trainLines.map((l) => l.timetableFetchedAt)));
+        rows.push(["鉄道時刻表情報", "ODPT 駅時刻表", trainTimetable ? `${trainTimetable} 取得` : "−"]);
+        return rows;
+      }
+
+      function fillDataTimes() {
+        const tbody = document.getElementById("data-times-body");
+        if (!tbody) return;
+        tbody.textContent = "";
+        for (const [name, source, at] of dataTimeRows()) {
+          tbody.append(el("tr", {}, el("td", { text: name }), el("td", { text: source }), el("td", { class: "num", text: at })));
+        }
+      }
+
+      let updatedAtText = ""; // 展示モードの凡例の先頭に出す「HH:mm 更新」
+      function renderLegend() {
+        const area = areaById.get(state.area);
+        const ul = document.getElementById("legend");
+        ul.textContent = "";
+        const items = [];
+        // 返す側は数字の塗りを揃えて事業者を印で示すので、凡例も印にそろえる。
+        // はまこく Exp. の返却先（輪つきの番号）は、注釈を付けずに行の右端へ置く（#198）
+        if (isReturnArea(area)) {
+          // はまこく Exp. の返却先（輪つきの番号）は、注釈を付けずに行の左端へ置く（#198）
+          const row = el("li", {});
+          if (area.ports.some((p) => p.usedByHamakokuex)) row.append(keyPinSwatch());
+          row.append(opsMark(OPERATORS), "返却可能なポート");
+          items.push(row);
+        } else {
+          items.push(el("li", {},
+            el("span", { class: "chip hellocycling", text: "黄" }), el("span", { class: "chip docomo", text: "赤" }),
+            "利用可能台数（HELLO・ドコモ）"));
+        }
+        if ((area.busStops ?? []).length) {
+          const s = el("span"); s.innerHTML = STOP_SVG;
+          items.push(el("li", {}, s, "バス停"));
+        }
+        if ((area.exits ?? []).length) {
+          const s = el("span", { class: "exit" });
+          s.style.cssText = "position: relative; display: inline-block; width: 14px; height: 13px";
+          s.innerHTML = EXIT_SVG;
+          s.firstChild.style.cssText = "left: 1px; top: 1px";
+          items.push(el("li", {}, s, "横浜駅の出口"));
+        }
+        if (trainsAvailable && (area.stations ?? []).length) {
+          const s = el("span", { class: "glyph" });
+          s.innerHTML = TRAIN_SVG;
+          items.push(el("li", {}, s, "鉄道情報"));
+        }
+        if (busAvailable) {
+          const s = el("span", { class: "bus" });
+          s.style.cssText = "position: relative; display: inline-block; margin: 0; width: 22px; height: 22px";
+          const b = el("span", { class: "body" }); b.style.inset = "3px"; b.innerHTML = BUS_GLYPH;
+          s.append(b);
+          // 台数そのものに意味は薄い。#84 の目的は「0台」と「取得失敗」の言い分けなので、
+          // 取れたかどうかだけを小さく添える（#198）
+          // 展示モードは短い名前で、取得の成否は出さない
+          items.push(el("li", {}, s, KIOSK ? "市営バス位置情報" : "リアルタイム位置情報（市営バスのみ）",
+            !KIOSK && busStatus ? el("small", { class: "note", text: BUS_STATUS_LABEL[busStatus] }) : null));
+        }
+        // 展示モードは触らせないので、操作の案内は出さない（#187）
+        if (!KIOSK) items.push(el("li", { class: "muted", text: "ドラッグで移動・ピンチで拡大・タップで詳細" }));
+        // 展示モードは、凡例の先頭に更新時刻を小さく出す
+        if (KIOSK && updatedAtText) items.unshift(el("li", { class: "muted lg-updated", text: updatedAtText }));
+        // データの時点は「くわしく」の表にまとめる（#220。ODPT ガイドライン 2.1.1）。
+        // 展示モードは「くわしく」を出さないので、凡例に短くまとめて出す（触れない画面でも読めるように）
+        if (KIOSK) {
+          // 一項目を一行に（遠目でも読めるように、まとめない）。取れていない行は出さない
+          // 名前と時刻は 2 列に分けて、時刻の頭を揃える
+          for (const [name, , at] of dataTimeRows()) {
+            if (at !== "−") items.push(el("li", { class: "muted lg-time" }, el("span", { text: name }), el("span", { text: at })));
+          }
+        }
+        // 展示モードは、記号の列を固定幅にして、説明の頭を揃える
+        if (KIOSK) {
+          for (const li of items.filter(Boolean)) {
+            if (li.classList.contains("muted")) continue;
+            const nodes = [...li.childNodes];
+            const iconCount = nodes.findIndex((n) => n.nodeType !== 1 || n.tagName === "SMALL");
+            if (iconCount <= 0) continue;
+            const icon = el("span", { class: "lg-icon" });
+            icon.append(...nodes.slice(0, iconCount));
+            const text = el("span", { class: "lg-text" });
+            text.append(...nodes.slice(iconCount));
+            li.append(icon, text);
+          }
+        }
+        ul.append(...items.filter(Boolean));
+        fillDataTimes();
+      }
+
+      // ---- ポートの一覧 ----
+
+      /**
+       * 借りられる台数（#199）。事業者名は書かず、色の印で示す（黄＝HELLO、赤＝ドコモ）。
+       *
+       * 数字を色の中に入れると、2つ並んだときに「3」「2」が「32」の一つの数に見えるので、
+       * 印は数字の**横**に置く。色だけに頼らないよう、読み上げ用の名前は title に残す
+       */
+      function countEl(op, value, big, renting = true) {
+        const label = SHORT_LABEL[op] ?? op;
+        const mark = el("i", { class: op });
+        // 利用時間外などで貸出が止まっているときは、数字ではなく「不可」と出す（#201）
+        if (!renting) return el("span", { class: "count closed", title: `${label} 現在貸出不可` }, mark, el("b", { text: "不可" }));
+        if (value === null) return el("span", { class: "count na", title: `${label} 台数不明` }, mark, el("b", { text: "−" }));
+        // 空きと同じく、台数も負で来ることがありうる（#206）。負は 0 として出す
+        const n = Math.max(0, value);
+        return el("span", { class: `count${n === 0 ? " zero" : ""}${big ? " big" : ""}`, title: `${label} ${n}台` },
+          mark, el("b", { text: String(n) }));
+      }
+
+      /**
+       * よく使うバス停の欄（#146）。覚えている停留所の「次の1本」を並べる。
+       * 押すと、ふだんの時刻表の欄（renderStopPanel）が開く
+       */
+      function renderFavorites() {
+        const box = document.getElementById("favorites");
+        box.textContent = "";
+        const names = state.favorites;
+        box.hidden = KIOSK || !names.length;
+        if (box.hidden) return;
+
+        box.append(el("div", { class: "list-head" }, el("h2", { text: "よく使うバス停" })));
+        if (!timetable) {
+          box.append(el("p", { class: "panel-empty", text: timetableError ? "この環境では時刻表を表示できません。" : "時刻表を取得中…" }));
+          return;
+        }
+        const now = nowMinutes();
+        for (const name of names) {
+          const all = (timetable.stops && timetable.stops[name]) || [];
+          const next = all.find((d) => toMinutes(d.time) + (d.delay ?? 0) >= now);
+          // 行そのものを押すと時刻表が開く。右端の ✕ で一覧から外す。
+          // ボタンの入れ子は作れないので、行は div にして中に2つ置く
+          const open = el("button", { type: "button", class: "open", "aria-label": `${name}の発車時刻を開く` },
+            el("span", { class: "name", text: name }));
+          if (next) {
+            const left = toMinutes(next.time) + (next.delay ?? 0) - now;
+            open.append(
+              el("span", { class: "t", text: next.time.length === 4 ? `0${next.time}` : next.time }),
+              el("span", { class: "left", text: left <= 0 ? "まもなく" : `あと${left}分` }));
+          } else {
+            open.append(el("span", { class: "t muted", text: "—" }), el("span", { class: "left muted", text: "本日は終了" }));
+          }
+          // どのエリアの停留所かを探して、その地図に切り替えてから開く
+          open.addEventListener("click", () => {
+            const area = data.areas.find((a) => (a.busStops ?? []).some((st) => st.name === name));
+            if (!area) return;
+            if (area.id !== state.area) setArea(area.id);
+            select({ kind: "stop", area: area.id, id: name });
+          });
+          box.append(el("div", { class: "fav-row" }, open,
+            el("button", { type: "button", class: "drop", "aria-label": `${name}をよく使うから外す`, title: "よく使うから外す", text: "✕",
+              onclick: () => toggleFavorite(name) })));
+        }
+        box.append(el("p", { class: "panel-foot", text: "時刻表の欄の「よく使う」で増やせます" }));
+      }
+
+      function renderList() {
+        const area = areaById.get(state.area);
+        const box = document.getElementById("port-list");
+        box.textContent = "";
+        const ret = isReturnArea(area);
+        box.append(el("div", { class: "list-head" },
+          el("h2", { text: "シェアサイクルのポート一覧" })));
+
+        area.ports.forEach((port, i) => {
+          const ops = shownOps(port);
+          if (!ops.length) return;
+          const info = returnInfo(port, ops);
+          // 「満」も数字と同じ大きさで出す（小さいと見落とす、#199）
+          const bigDock = (body, cls) => el("span", { class: `dock big${cls ? ` ${cls}` : ""}` }, "返す 空き", el("b", { text: body }), opsMark(ops));
+          const dock =
+            info.kind === "none" ? el("span", { class: "dock muted", text: "返す: −" })
+            : info.kind === "closed" ? (ret ? bigDock("不可", "full") : el("span", { class: "dock full", text: "返却：現在不可" }))
+            : info.kind === "unlimited" ? (ret ? bigDock("あり") : el("span", { class: "dock", text: "返す: 空きあり" }))
+            : info.value === 0 ? (ret ? bigDock("満", "full") : el("span", { class: "dock full", text: "返す: 満" }))
+            : ret ? bigDock(String(info.value))
+            : el("span", { class: "dock", text: `返す: 空き ${info.value}` });
+          // 借りられる台数は、事業者名を書かずに色のチップで示す（「HELLO 3」は読みにくい、#199）。
+          // 色の意味は凡例（黄＝HELLO、赤＝ドコモ）に書いてある
+          const counts = el("div", { class: "row" },
+            ret ? el("span", { class: "lead", text: "借りる" }) : null,
+            ...ops.map((op) => {
+              const st = statusFor(port, op);
+              return countEl(op, st ? (st.num_bikes_available ?? null) : null, !ret && state.op !== "both", canRent(st));
+            }));
+          const sub = [port.usedByHamakokuex ? "はまこく Exp. の返却先" : null, port.availableOperators.length < OPERATORS.length ? `${operatorLabel(port.availableOperators[0])} のみ` : null].filter(Boolean).join("・");
+          const row = el("div", { class: `port-row${port.usedByHamakokuex ? " key" : ""}`, "data-port": port.id },
+            el("span", { class: "n", text: String(i + 1), "aria-hidden": "true" }),
+            el("div", {}, el("span", { class: "name", text: port.displayName }), sub ? el("span", { class: "sub", text: sub }) : null),
+            el("div", { class: "counts" }, ...(ret ? [dock, counts] : [counts, dock])));
+          row.addEventListener("mouseenter", () => setActive(port.id, true));
+          row.addEventListener("mouseleave", () => setActive(port.id, false));
+          box.append(row);
+        });
+
+        box.append(renderMore(area));
+      }
+
+      /**
+       * 文の中の一部を太字にする（#199）。免責は読み飛ばされやすいので、肝だけ強くする
+       * @param {(string | Node)[]} parts
+       */
+      function strongText(text) {
+        return el("strong", { text });
+      }
+
+      /**
+       * 情報の正しさについての断り書き（#199・#204）。「くわしく」とページの下の両方で使う。
+       * 読み飛ばされやすいので、肝のところだけ太字にする。
+       * 「こちら」はこのページの報告の欄を開く（#204）。止めているときは押せない文字のまま出す
+       * @param {(string | Node)[]} lead - 前置き（文面が2か所で違う）
+       */
+      function disclaimerParts(...lead) {
+        return [
+          ...lead,
+          "ご利用の場合は", strongText("必ず事業者の公式アプリなどの情報をご参照"), "ください。",
+          "情報に誤りがある場合は",
+          el("strong", {}, "事業者へのお問い合わせはお控えいただき、",
+            reportButton("こちら", "other", () => reportContext()) ?? "こちら",
+            "から team301 にご連絡ください。"),
+        ];
+      }
+
+      // 定員・共用の説明・数字の読み方は「くわしく」に畳む（#177・#199）
+      function renderMore(area) {
+        const details = el("details", { class: "more" });
+        details.append(el("summary", { text: "くわしく（共用・定員・数字の読み方・取得時刻）" }));
+        details.append(el("p", { class: "notice" },
+          ...disclaimerParts("表示される情報は実際の状況と異なる場合があります。"),
+          // 免責事項はアプリ共通のページ（#226）。ページの下にもリンクがあるので、ここ（くわしく）にだけ添える
+          "（", el("a", { href: "/disclaimer" }, "免責事項・クレジット"), "）"));
+
+        const shared = area.ports.filter((p) => p.availableOperators.length > 1);
+        if (shared.length) {
+          details.append(el("p", { text: "構内のポートは HELLO CYCLING とドコモ・バイクシェアが共同で利用可能です。（2026年10月現在）" }));
+          const ul = el("ul", { class: "plain" },
+            el("li", {}, strongText("貸出の場合："), "利用可能台数が事業者ごとに分かれているため、どちらか一方のみ利用の場合にご注意ください。"),
+            el("li", {}, strongText("返却の場合："), "返却可能台数は事業者によらず共通です。"));
+          details.append(ul);
+        }
+
+        const dl = el("dl");
+        for (const [t, d] of [
+          ["−", "台数を取得できていない（取得中・取得できなかった・その事業者のデータに無い）"],
+          ["満", "返却できる空きなし"],
+          ["空きあり", "返却台数に制限がないポート"],
+          ["不可", "利用時間外などで現在貸出不可（返却不可の場合は「返却：現在不可」）"],
+        ]) dl.append(el("dt", { text: t }), el("dd", { text: d }));
+        details.append(dl);
+
+        const table = el("table");
+        table.append(el("thead", {}, el("tr", {}, el("th", { text: "ポート" }), el("th", { text: "定員" }))));
+        const tbody = el("tbody");
+        area.ports.forEach((port, i) => {
+          tbody.append(el("tr", {},
+            el("td", { text: `${i + 1}. ${port.displayName}${port.note ? `（${port.note}）` : ""}` }),
+            el("td", { class: "num", text: isUnlimitedReturn(port) ? "無制限" : `${port.capacity ?? "不明"}台` })));
+        });
+        table.append(tbody);
+        details.append(table);
+        // データごとの取得時刻（#220）。値は renderLegend → fillDataTimes で埋める。取得のたびに描き直される
+        details.append(el("p", { class: "muted", text: "データごとの取得時刻" }));
+        const timesTable = el("table");
+        timesTable.append(el("thead", {}, el("tr", {}, el("th", { text: "データ" }), el("th", { text: "取得元" }), el("th", { text: "時刻" }))));
+        timesTable.append(el("tbody", { id: "data-times-body" }));
+        details.append(timesTable);
+        const updated = new Date(data.updatedAt);
+        details.append(el("p", { class: "muted" },
+          `ポートの位置・定員は ${isNaN(updated) ? data.updatedAt : updated.toLocaleDateString("ja-JP")} 時点のスナップショットです。`,
+          reportButton("　ポートの情報を報告", "port-info", () => reportContext())));
+        return details;
+      }
+
+      // ---- 押したもの（バス停・バス・出発地の建物）----
+
+      /**
+       * 展示モードで、選んだものを跳ねさせて輪を広げる（#189）。
+       * 来場者は触らないので、めくったことを動きで知らせる。
+       * 位置は placeMarker が transform で決めているので、跳ねるのは中身だけ（CSS 側）
+       */
+      function kioskPop(sel) {
+        if (!KIOSK || !sel) return;
+        const u = ui.get(sel.area);
+        if (!u) return;
+        const found = sel.kind === "stop" ? u.stops.find((s) => s.name === sel.id)
+          : sel.kind === "bus" ? u.buses.find((b) => b.bus.id === sel.id)
+            : sel.kind === "station" ? u.stations.find((st) => st.id === sel.id)
+              : null;
+        const target = found ?? (sel.kind === "dep" ? u.depLabels.find((d) => d.id === sel.id) : null);
+        if (!target) return;
+        // いったん外してから付け直さないと、同じ要素で2回目のアニメーションが始まらない。
+        // 終わったら外す（付けっぱなしにすると、どれが今めくられたのか分からなくなる）
+        target.node.classList.remove("pop");
+        void target.node.offsetWidth;
+        target.node.classList.add("pop");
+        setTimeout(() => target.node.classList.remove("pop"), 700);
+
+        // 広がる輪。建物（出発地）には出さない。輪は点を指すためのもので、
+        // 面で塗ってある建物には合わない（#189）
+        if (sel.kind === "dep") return;
+        const ping = el("span", { class: "ping" }, el("i", {}));
+        u.markers.appendChild(ping);
+        placeMarker(ping, u.view, target.x, target.y);
+        // 駅の印は重なりを避けて縦にずれていることがある。輪もその分だけ下げる（#194）
+        if (sel.kind === "station" && target.dy) ping.style.marginTop = `${target.dy.toFixed(1)}px`;
+        // バスは動いているので、輪も一緒に動かす。止まっているバス停はそのまま
+        if (sel.kind === "bus") u.pings.push({ node: ping, of: target });
+        const drop = () => {
+          ping.remove();
+          u.pings = u.pings.filter((p) => p.node !== ping);
+        };
+        ping.firstElementChild.addEventListener("animationend", drop);
+        setTimeout(drop, 2000);
+      }
+
+      function select(sel) {
+        const cur = state.sel;
+        // 同じものをもう一度押したら閉じる
+        if (cur && sel && cur.kind === sel.kind && cur.area === sel.area && cur.id === sel.id) sel = null;
+        state.sel = sel;
+        state.showAll = false;
+        state.openDir = new Set();
+        kioskPop(sel);
+        // 選んだときだけ、選んだものが見えるところまで地図と画面を動かす。
+        // 自動更新で描き直すときは動かさない（読んでいる途中で画面が飛ばないように）
+        renderSelection(true);
+        if (sel && sel.kind === "stop") loadTimetable().then(() => { renderSelection(); renderFavorites(); }, () => renderSelection());
+        if (sel && sel.kind === "station") loadTrains().then(() => renderSelection(), () => renderSelection());
+      }
+
+      function closePanel() { select(null); }
+
+      function panelHead(title, closeLabel) {
+        return el("div", { class: "panel-head" },
+          el("h2", { text: title }),
+          el("button", { type: "button", class: "x", "aria-label": closeLabel, onclick: closePanel, text: "×" }));
+      }
+
+      function renderSelection(reveal = false) {
+        const sel = state.sel;
+        // 地図の印の「選んでいる」表示
+        for (const [areaId, u] of ui) {
+          for (const s of u.stops) s.node.classList.toggle("on", !!sel && sel.kind === "stop" && sel.area === areaId && sel.id === s.name);
+          for (const b of u.buses) b.node.classList.toggle("on", !!sel && sel.kind === "bus" && sel.area === areaId && sel.id === b.bus.id);
+          for (const st of u.stations) st.node.classList.toggle("on", !!sel && sel.kind === "station" && sel.area === areaId && sel.id === st.id);
+          for (const [id, poly] of u.deps) poly.classList.toggle("on", !!sel && sel.kind === "dep" && sel.area === areaId && sel.id === id);
+          // 建物の名前は別の層にあるので、同じ印を付けておく（展示モードで薄くする対象から外すため、#194）
+          for (const d of u.depLabels) d.node.classList.toggle("on", !!sel && sel.kind === "dep" && sel.area === areaId && sel.id === d.id);
+          // 展示モードでは、めくっているものと同じ種類のほかの印だけを薄くする
+          u.viewport.dataset.focus = KIOSK && sel && sel.area === areaId ? sel.kind : "";
+          if (u.callout) { u.callout.node.remove(); u.callout = null; }
+        }
+
+        const panels = document.getElementById("panels");
+        panels.textContent = "";
+        if (!sel) return;
+        const area = areaById.get(sel.area);
+        const u = ui.get(sel.area);
+
+        if (sel.kind === "dep") {
+          // 出発地の建物は、地図の上に吹き出しで出す（#179）
+          const dep = (area.departures ?? []).find((d) => d.id === sel.id);
+          if (!dep) return;
+          const name = DEPARTURE_NAME[dep.id] ?? dep.id;
+          const node = el("div", { class: "dep-callout", role: "dialog", "aria-label": `${name}から帰る` },
+            el("b", { text: `${name}から帰る` }),
+            el("a", { href: `${EXP_URL}?from=${encodeURIComponent(dep.id)}`, text: "横浜駅までの最速ルート →" }),
+            el("button", { type: "button", class: "x", "aria-label": "閉じる", onclick: closePanel, text: "×" }));
+          u.markers.appendChild(node);
+          const [x0, y0, x1, y1] = dep.bbox;
+          u.callout = { node, x: (x0 + x1) / 2, y: y0 };
+          // 吹き出しは建物の上。幅の半分だけ左へずらし、枠からはみ出す分は戻す
+          const w = node.offsetWidth;
+          const h = node.offsetHeight;
+          const sx = u.view.tx + u.callout.x * u.view.scale;
+          const vpW = u.viewport.clientWidth;
+          const left = clamp(sx - w / 2, 4, Math.max(4, vpW - w - 4)) - sx;
+          node.style.marginLeft = `${left}px`;
+          node.style.marginTop = `${-h - 10}px`;
+          if (reveal) u.view.ensureVisible((x0 + x1) / 2, (y0 + y1) / 2, Math.min(h + 30, 140));
+          placeMarker(node, u.view, u.callout.x, u.callout.y);
+          return;
+        }
+
+        if (sel.kind === "stop") {
+          const stop = u.stops.find((s) => s.name === sel.id);
+          if (stop && reveal) u.view.ensureVisible(stop.x, stop.y, 50);
+          panels.append(renderStopPanel(area, sel.id));
+        } else if (sel.kind === "station") {
+          const st = u.stations.find((x) => x.id === sel.id);
+          if (st && reveal) u.view.ensureVisible(st.x, st.y, 50);
+          panels.append(renderStationPanel(area, sel.id));
+          // 幅が要るので、置いてから測る（#200）
+          flowLongInfo(panels);
+        } else if (sel.kind === "bus") {
+          const b = u.buses.find((x) => x.bus.id === sel.id);
+          if (!b) { state.sel = null; return; }
+          if (reveal) u.view.ensureVisible(b.x, b.y, 50);
+          panels.append(renderBusPanel(b.bus));
+        }
+        if (reveal && !KIOSK) panels.firstElementChild?.scrollIntoView({ block: "nearest" });
+      }
+
+      // ---- バス停の発車時刻（#53）と遅れ（#178）----
+      //
+      // 時刻表はどの事業者もキーが要るので、サーバからしか取れない。
+      // 市営バスの便には、走っている位置から求めた遅れ（delay、分）が載る。相鉄バス・神奈中は位置が無いので null
+      const TIMETABLE_API = "api/timetable";
+      const BUS_OPERATOR_LABEL = { sotetsu: "相鉄バス", municipal: "市営バス", kanachu: "神奈中バス" };
+      const UPCOMING_COUNT = 6;
+      // サーバのキャッシュと同じ 60 秒。開いている間に遅れが変わるので取り直す
+      const TIMETABLE_REFRESH_MS = 60 * 1000;
+
+      let timetable = null;        // { date, stops: {...}, errors: [...] }
+      let timetableAt = 0;
+      let timetableError = false;
+      let timetableLoading = null;
+
+      function todayString() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      }
+
+      async function loadTimetable(force) {
+        if (!force && timetable && Date.now() - timetableAt < TIMETABLE_REFRESH_MS && timetable.date === todayString()) return timetable;
+        if (!timetableLoading) {
+          timetableLoading = (async () => {
+            try {
+              const res = await fetch(`${TIMETABLE_API}?date=${todayString()}`, { cache: "no-store" });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              timetable = await res.json();
+              noteDemo(timetable);
+              timetableAt = Date.now();
+              timetableError = false;
+              renderLegend();
+            } catch (error) {
+              // 口が無い（静的配信）・落ちている。前に取れたものがあればそれを出し続ける
+              if (!timetable) timetableError = true;
+            }
+            return timetable;
+          })().finally(() => { timetableLoading = null; });
+        }
+        return timetableLoading;
+      }
+
+      // 「HH:mm」を分に直す。24 時を超える表記（25:10）もそのまま扱う
+      function toMinutes(t) {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      }
+      // 0:00〜3:59 は前日ダイヤの 24:00〜27:59 として比べる（spec 4章と同じ扱い）
+      function nowMinutes() {
+        const d = new Date();
+        const m = d.getHours() * 60 + d.getMinutes();
+        return d.getHours() < 4 ? m + 24 * 60 : m;
+      }
+
+      function renderStopPanel(area, stopName) {
+        const sec = el("section", { class: "panel", "aria-label": `${stopName}の発車時刻` });
+        const head = panelHead(`${stopName}　横浜駅方面`, "時刻を閉じる");
+        // よく使うバス停（#146）。展示モードでは覚えさせない
+        if (!KIOSK) {
+          const on = isFavorite(stopName);
+          head.insertBefore(el("button", {
+            type: "button",
+            class: on ? "fav-toggle on" : "fav-toggle",
+            "aria-pressed": String(on),
+            title: on ? "よく使うから外す" : "よく使うに入れる",
+            text: on ? "★ よく使う" : "☆ よく使う",
+            onclick: () => toggleFavorite(stopName),
+          }), head.lastElementChild);
+        }
+        sec.append(head);
+
+        if (!timetable) {
+          sec.append(el("p", { class: "panel-empty", text: timetableError
+            ? "この環境では時刻表を表示できません。"
+            : "時刻表を取得中…" }));
+          return sec;
+        }
+        const all = (timetable.stops && timetable.stops[stopName]) || [];
+        if (!all.length) {
+          // 「持っていない停留所」と「今日は走らない停留所」はサーバの応答から言い分けられないので、分かることだけ書く
+          sec.append(el("p", { class: "panel-empty", text: `${timetable.date} のダイヤでは、この停留所から横浜駅方面の便はありません。` }));
+          return sec;
+        }
+
+        const now = nowMinutes();
+        // これからの便は、遅れを足した見込みで「まだ来ていない」ものを出す
+        const upcoming = all.filter((d) => toMinutes(d.time) + (d.delay ?? 0) >= now);
+        const list = state.showAll ? all : upcoming.slice(0, UPCOMING_COUNT);
+        if (!list.length) {
+          sec.append(el("p", { class: "panel-empty", text: "本日の横浜駅方面の運行は終了しました。" }));
+        }
+        for (const d of list) {
+          const op = BUS_OPERATOR_LABEL[d.operator] ?? d.operator;
+          // 遅れを出せるのは市営バスだけ（相鉄バス・神奈中は車両位置を配信していない）。
+          // 足の注釈ではなく、便ごとに「非対応」と出す（#200）
+          const line = { delayAvailable: d.operator === "municipal" };
+          const left = toMinutes(d.time) + (d.delay ?? 0) - now;
+          const leftText = left < 0 ? "発車済み" : left === 0 ? "まもなく" : `あと${left}分`;
+          sec.append(el("div", { class: "dep-row" },
+            el("span", { class: "t", text: d.time.length === 4 ? `0${d.time}` : d.time }),
+            el("span", { class: "what" }, [d.route, "横浜駅方面"].filter(Boolean).join(" "),
+              el("small", { text: [op, d.isMidnight ? "深夜" : null].filter(Boolean).join("・") })),
+            el("span", { class: "left" }, leftText, delayNode(line, d, left))));
+        }
+
+        const foot = el("p", { class: "panel-foot" },
+          el("button", { type: "button", class: "link", onclick: () => { state.showAll = !state.showAll; renderSelection(); }, text: state.showAll ? "これからの便" : "当日の全便" }),
+          `　／　${timetable.date} のダイヤ`,
+          reportButton("　／　この時刻を報告", "wrong-time", () => reportContext()));
+        sec.append(foot);
+        return sec;
+      }
+
+      // ---- 駅の発車時刻（#186）----
+      //
+      // 横浜駅から出る電車。路線ごとに次の3本を、方向ごとに出す。
+      // 絞り込みはサーバでやっているので、ここは描くだけ（1駅1方向で 110〜330 本あるため）。
+      // 取れるものが路線で違うので、路線ごとの印（delayAvailable / infoAvailable）を見て言い分ける
+      const TRAINS_API = "api/trains";
+      // サーバのキャッシュと同じ 60 秒。開いている間に遅れと「いまどのあたり」が変わる
+      const TRAINS_REFRESH_MS = 60 * 1000;
+
+      let trains = null;           // { date, calendar, operators: [...], errors: [...] }
+      let trainsAt = 0;
+      let trainsError = false;
+      let trainsLoading = null;
+      // 口が無い（静的配信）・チャレンジ API のキーが無い（#100）と分かったら、駅の印ごと畳む
+      let trainsAvailable = true;
+
+      async function loadTrains(force) {
+        if (!trainsAvailable) return null;
+        // file:// で開いたときは口が無いと分かりきっている。バスと同じく、駅の表示ごと畳む
+        if (location.protocol === "file:") { trainsAvailable = false; return null; }
+        if (!force && trains && Date.now() - trainsAt < TRAINS_REFRESH_MS && trains.date === todayString()) return trains;
+        if (!trainsLoading) {
+          trainsLoading = (async () => {
+            try {
+              const res = await fetch(`${TRAINS_API}?date=${todayString()}`, { cache: "no-store" });
+              // 404（静的配信）・503（サーバにキーが無い）は、待っても出ないので畳む
+              if (res.status === 404 || res.status === 503) { trainsAvailable = false; return null; }
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              trains = await res.json();
+              noteDemo(trains);
+              trainsAt = Date.now();
+              trainsError = false;
+              renderLegend();
+            } catch (error) {
+              // 落ちている。前に取れたものがあればそれを出し続ける
+              if (!trains) trainsError = true;
+            }
+            return trains;
+          })().finally(() => { trainsLoading = null; });
+        }
+        return trainsLoading;
+      }
+
+      // 駅の時刻表は 24 時超え表記を使わず「00:07」で来る。0〜3時台は翌日ぶんとして比べる
+      function toMinutesTrain(t) {
+        const [h, m] = t.split(":").map(Number);
+        return (h < 4 ? h + 24 : h) * 60 + m;
+      }
+
+      /**
+       * 路線ごとの運行情報（#200）。出し方は3つだけにする。
+       * - 配信がない路線（京急・相鉄）… 「運行情報：−」（灰色の囲み）
+       * - 平常 … 「運行情報：平常運転」（青の囲み）。事業者で文面が違う（東急は長い）ので言い方をそろえる
+       * - それ以外 … 配信された文面をそのまま赤の囲みで出す（遅れと見合わせを自前で判別しない）
+       */
+      function lineInfoNode(line) {
+        // 「運行情報：」は動かさず、本文だけを送る。
+        // 電光掲示板のように一方向へ送るので、同じ本文を2つ並べた帯にする。
+        // 1つ目が左へ抜けるのと入れ替わりに2つ目が入るので、切れ目なく回る
+        const box = (tone, text) => el("span", { class: `info ${tone}` },
+          el("span", { class: "label", text: "運行情報：" }),
+          el("span", { class: "body" },
+            el("span", { class: "track" },
+              el("span", { class: "text", text }),
+              el("span", { class: "text dup", text, "aria-hidden": "true" }))));
+        if (!line.infoAvailable || !line.info) return box("none", "非対応");
+        return line.info.normal ? box("ok", "平常運転") : box("bad", line.info.text);
+      }
+
+      /**
+       * 入りきらない運行情報を、折り返さずにゆっくり流す（#200）。
+       *
+       * 本文は長い（実例 46 字）。2行にすると欄が間延びするので、1行のまま端まで送って
+       * 戻す。入りきるもの（「平常運転」など）は動かさない。
+       * 速さは 1 秒 30px にそろえ、前後で 1.6 秒ずつ止めて読む間をつくる。
+       * 動きを控えめにする設定のときは、CSS 側で折り返しに戻す
+       *
+       * @param {Element} root - 測る前に DOM へ入れてあること（幅が要るため）
+       */
+      function flowLongInfo(root) {
+        const GAP = 32;    // 2つ目の文との間。詰まって見えない程度に空ける
+        const SPEED = 35;  // 1 秒に送る px
+        for (const info of root.querySelectorAll(".info")) {
+          const body = info.querySelector(".body");
+          const text = info.querySelector(".text");
+          if (!body || !text) continue;
+          info.classList.remove("flow");
+          // 動かすのは本文だけ。「運行情報：」の札は外にあるので、幅は .body で測る
+          const inner = () => body.clientWidth;
+          if (text.getBoundingClientRect().width <= inner() + 1) continue;
+          // 流すと決めたときだけ幅の下限が効くので、付けてから測り直す
+          info.classList.add("flow");
+          const width = text.getBoundingClientRect().width;
+          if (width <= inner() + 1) { info.classList.remove("flow"); continue; }
+          info.style.setProperty("--shift", `${Math.round(width + GAP)}px`);
+          info.style.setProperty("--dur", `${((width + GAP) / SPEED).toFixed(1)}s`);
+        }
+      }
+
+      /**
+       * 便ごとの遅れ（#200）。配信がない路線は「非対応」と出す。
+       * 足の注釈に書いても見落とされるので、便の横に出す
+       */
+      function delayNode(line, d, left) {
+        const small = { class: "muted", style: "display: block; font-size: 11px; font-weight: 400" };
+        if (!line.delayAvailable) return el("span", { ...small, text: "（非対応）" });
+        if (d.delay > 0) return el("span", { class: "late", text: `${d.delay}分遅れ` });
+        if (d.delay === 0 && left >= 0) return el("span", { ...small, text: "定刻" });
+        return null;
+      }
+
+      /**
+       * 駅の欄の1便ぶん。toggle を渡すと、押して残りを開け閉めする行になる（#186）
+       * @param {object} line - 路線（遅れを出せるかの判定に使う）
+       * @param {object} d - 1便
+       * @param {number} now - いまの分
+       * @param {{key: string, open: boolean} | null} toggle
+       */
+      function departureRow(line, d, now, toggle) {
+        const left = toMinutesTrain(d.time) + (d.delay ?? 0) - now;
+        const leftText = left < 0 ? "発車済み" : left === 0 ? "まもなく" : `あと${left}分`;
+        // 走行中の列車は緯度経度を持たないので、駅と駅の間でしか言えない（#186）
+        const where = d.position
+          ? (d.position.to ? `${d.position.from}〜${d.position.to}` : `${d.position.from}に停車中`)
+          : null;
+        const body = [
+          el("span", { class: "t", text: d.time }),
+          el("span", { class: "what" }, [d.type, d.destination].filter(Boolean).join(" "),
+            where ? el("small", { text: `いま ${where}` }) : null),
+          el("span", { class: "left" }, leftText, delayNode(line, d, left)),
+        ];
+        if (!toggle) return el("div", { class: "dep-row" }, ...body);
+
+        const row = el("button", {
+          type: "button",
+          class: toggle.open ? "dep-row more open" : "dep-row more",
+          "aria-expanded": String(toggle.open),
+        }, ...body, el("span", { class: "chev", "aria-hidden": "true" }));
+        row.addEventListener("click", () => {
+          if (state.openDir.has(toggle.key)) state.openDir.delete(toggle.key);
+          else state.openDir.add(toggle.key);
+          renderSelection();
+        });
+        return row;
+      }
+
+      function renderStationPanel(area, operatorId) {
+        const station = (area.stations ?? []).find((st) => st.id === operatorId);
+        const name = station?.name ?? operatorId;
+        const sec = el("section", { class: "panel", "aria-label": `${name}の発車時刻` });
+        sec.append(panelHead(`${name}　横浜駅`, "発車時刻を閉じる"));
+
+        if (!trains) {
+          sec.append(el("p", { class: "panel-empty", text: trainsError
+            ? "発車時刻を取得できませんでした。"
+            : "発車時刻を取得中…" }));
+          return sec;
+        }
+        const operator = (trains.operators ?? []).find((op) => op.id === operatorId);
+        if (!operator?.lines?.length) {
+          sec.append(el("p", { class: "panel-empty", text: `${name}の時刻表を取得できませんでした。` }));
+          return sec;
+        }
+
+        const now = nowMinutes();
+        for (const line of operator.lines) {
+          sec.append(el("div", { class: "line-head" }, el("span", { text: line.name }), lineInfoNode(line)));
+          for (const direction of line.directions) {
+            sec.append(el("div", { class: "dir-head", text: direction.name }));
+            if (!direction.departures.length) {
+              sec.append(el("p", { class: "panel-empty", text: "本日の運行は終了しました。" }));
+              continue;
+            }
+            // 既定では次の1本だけ。JR は4路線×2方向あり、3本ずつ出すと縦に長すぎる（#186）。
+            // 1本目を押すと残りが開く
+            const key = `${line.id}:${direction.id}`;
+            const open = state.openDir.has(key);
+            const rest = direction.departures.slice(1);
+            direction.departures.forEach((d, i) => {
+              if (i > 0 && !open) return;
+              const row = departureRow(line, d, now, i === 0 && rest.length ? { key, open } : null);
+              sec.append(row);
+            });
+          }
+        }
+
+        // 遅れの可否は便ごとに出すようにしたので（#200）、足は操作の案内と取得時刻だけにする
+        const fetched = trains.fetchedAt ? new Date(trains.fetchedAt) : null;
+        sec.append(el("p", { class: "panel-foot" },
+          "発車時刻をタップで後続列車を表示",
+          fetched && !isNaN(fetched) ? `　／　${trains.date} のダイヤ（${hhmm(fetched)} 取得）` : `　／　${trains.date} のダイヤ`,
+          reportButton("　／　この時刻を報告", "wrong-time", () => reportContext())));
+        return sec;
+      }
+
+      // ---- 報告・お問い合わせ（#204）----
+      //
+      // はまこく Exp.（#122）と同じ受け口へ送る。連投の制限と1日の上限は共通。
+      // REPORT_ENABLED=false のときは口が空の一覧を返すので、入口ごと出さない。
+      // 展示モードでは触らせないので出さない
+      const REPORT_KINDS_API = "api/report-kinds";
+      const REPORT_API = "api/report";
+      let reportKinds = [];
+
+      async function loadReportKinds() {
+        if (KIOSK) return [];
+        try {
+          const res = await fetch(REPORT_KINDS_API, { cache: "no-store" });
+          if (!res.ok) return [];
+          reportKinds = (await res.json()).kinds ?? [];
+        } catch {
+          reportKinds = [];
+        }
+        return reportKinds;
+      }
+
+      /** 報告を開けるか。口が無い配信や、止めているときは開けない */
+      function reportAvailable() {
+        return reportKinds.length > 0;
+      }
+
+      /**
+       * 報告の欄を開く（#204）
+       * @param {string} kind - 既定で選んでおく種類
+       * @param {string} context - 何を見ていたか。そのまま conditions として送る
+       */
+      function openReport(kind, context) {
+        if (!reportAvailable()) return;
+        const dialog = document.getElementById("report-dialog");
+        const select = document.getElementById("report-kind");
+        select.textContent = "";
+        for (const k of reportKinds) select.append(el("option", { value: k.value, text: k.label }));
+        select.value = reportKinds.some((k) => k.value === kind) ? kind : reportKinds[reportKinds.length - 1].value;
+        document.getElementById("report-message").value = "";
+        document.getElementById("report-honeypot").value = "";
+        const ctx = document.getElementById("report-context");
+        ctx.hidden = !context;
+        ctx.textContent = context ? `報告対象：${context}` : "";
+        ctx.dataset.context = context ?? "";
+        const err = document.getElementById("report-error");
+        err.hidden = true;
+        err.textContent = "";
+        dialog.showModal();
+      }
+
+      /**
+       * いま何を見ていたか（#204）。報告の conditions として送る。
+       * エリアと、欄を開いているならその中身を書く
+       */
+      function reportContext() {
+        const area = areaById.get(state.area);
+        const parts = [AREA_TAB[area.id] ?? area.name];
+        const sel = state.sel;
+        if (sel?.kind === "stop") parts.push(`バス停「${sel.id}」の発車時刻`);
+        else if (sel?.kind === "station") parts.push(`${(area.stations ?? []).find((st) => st.id === sel.id)?.name ?? sel.id}の発車時刻`);
+        else if (sel?.kind === "bus") parts.push("走っているバスの欄");
+        else if (sel?.kind === "dep") parts.push(`出発地「${DEPARTURE_NAME[sel.id] ?? sel.id}」`);
+        else parts.push("ポート一覧");
+        parts.push(`使うアプリ: ${state.op === "both" ? "両方" : operatorLabel(state.op)}`);
+        return parts.join(" ／ ");
+      }
+
+      /** 報告を開くボタン。入口は欄の足・免責・ページの下の3か所（#204） */
+      function reportButton(label, kind, context) {
+        if (!reportAvailable()) return null;
+        return el("button", { type: "button", class: "report-open", text: label,
+          onclick: () => openReport(kind, typeof context === "function" ? context() : context) });
+      }
+
+      async function sendReport() {
+        const err = document.getElementById("report-error");
+        const send = document.getElementById("report-send");
+        const message = document.getElementById("report-message").value.trim();
+        if (!message) {
+          err.hidden = false;
+          err.textContent = "内容を入力してください。";
+          return;
+        }
+        send.disabled = true;
+        try {
+          const res = await fetch(REPORT_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              kind: document.getElementById("report-kind").value,
+              message,
+              conditions: document.getElementById("report-context").dataset.context ?? "",
+              page: window.location.pathname,
+              // 罠の欄。人が触ることは無いので、入っていたら機械とみなされる
+              website: document.getElementById("report-honeypot").value,
+            }),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.ok) throw new Error(body.error || "送信に失敗しました。時間をおいて再度お試しください。");
+          document.getElementById("report-dialog").close();
+          noteSent();
+        } catch (error) {
+          err.hidden = false;
+          err.textContent = error.message;
+        } finally {
+          send.disabled = false;
+        }
+      }
+
+      /** 送れたことを知らせる。欄の上に短く出すだけ（画面を塞がない） */
+      function noteSent() {
+        const note = el("p", { class: "panel-empty", role: "status", text: "送信しました。ご協力ありがとうございます。" });
+        const panels = document.getElementById("panels");
+        panels.prepend(note);
+        setTimeout(() => note.remove(), 6000);
+      }
+
+      // ---- 走っているバス（#84）とその欄（#178）----
+      //
+      // 位置は ODPT の本番 API にしか無く、キーが要るのでサーバ経由でしか取れない。
+      // 静的に配っているとき（file:// や Live Server）は口が無いので、バスの表示ごと畳む。
+      // 出るのは横浜市営バスだけ（相鉄バスは車両位置を配信していない）
+      const BUSES_API = "api/buses";
+      // odpt:Bus の odpt:frequency が 30 秒。サーバのキャッシュも同じ
+      const BUS_REFRESH_MS = 30 * 1000;
+      let busTimer = null;
+      let busFetching = false;
+      let busLastFetchedAt = 0;
+      // 口が無い・キーが無いと分かったら、以後は取りに行かない
+      let busAvailable = true;
+      const busesByArea = {};
+
+      function busTitle(bus) {
+        return [
+          bus.route ? `${bus.route}系統` : "市営バス",
+          bus.terminal ? `${bus.terminal}行` : null,
+          bus.delay > 0 ? `${bus.delay}分遅れ` : bus.delay === 0 ? "定刻" : null,
+          bus.occupancy,
+        ].filter(Boolean).join("・");
+      }
+
+      function renderBuses(area) {
+        const u = ui.get(area.id);
+        // 同じ車両は作り直さずに使い回す。展示モードで前の位置から滑らせるため（#187）
+        const prev = new Map(u.buses.map((b) => [b.bus.id, b]));
+        const next = [];
+        for (const bus of busesByArea[area.id] ?? []) {
+          const { x, y } = project(bus, area);
+          const kept = prev.get(bus.id);
+          if (kept) {
+            prev.delete(bus.id);
+            kept.node.title = busTitle(bus);
+            kept.node.setAttribute("aria-label", busTitle(bus));
+            const dir = kept.node.querySelector(".dir");
+            if (dir && bus.azimuth !== null && bus.azimuth !== undefined) dir.style.transform = `rotate(${Math.round(bus.azimuth)}deg)`;
+            const route = kept.node.querySelector(".route");
+            if (route) route.textContent = bus.route ?? "";
+            if (KIOSK) {
+              // 経路の形があれば線に沿って、無ければ2点を直線で（#187・#189）
+              const via = routeBetween(bus.route, { lat: kept.bus.lat, lon: kept.bus.lon }, { lat: bus.lat, lon: bus.lon });
+              const points = via ? via.map((q) => project(q, area)) : [{ x: kept.x, y: kept.y }, { x, y }];
+              kept.path = makePath(points);
+              // 経路に沿っているときだけ、矢印を動きに合わせる（#189）。直線に落ちたときは
+              // 2 点を結んだだけで実際の進む向きとは限らないので、odpt:azimuth のままにする
+              kept.path.snapped = Boolean(via);
+              kept.at = performance.now();
+            } else { kept.x = x; kept.y = y; }
+            kept.bus = bus;   // path を作るのに前の位置が要るので、作り終えてから差し替える
+            next.push(kept);
+            continue;
+          }
+          const node = el("button", { type: "button", class: "bus", "aria-label": busTitle(bus), title: busTitle(bus) });
+          if (bus.azimuth !== null && bus.azimuth !== undefined) {
+            node.insertAdjacentHTML("beforeend", BUS_DIR);
+            node.lastElementChild.style.transform = `rotate(${Math.round(bus.azimuth)}deg)`;
+          }
+          const body = el("span", { class: "body" });
+          body.innerHTML = BUS_GLYPH;
+          node.append(body);
+          if (bus.route) node.append(el("span", { class: "route", text: bus.route }));
+          node.addEventListener("click", () => select({ kind: "bus", area: area.id, id: bus.id }));
+          u.markers.appendChild(node);
+          next.push({ node, x, y, bus });
+        }
+        // 範囲から出た車両は消す
+        for (const b of prev.values()) b.node.remove();
+        u.buses = next;
+        positionMarkers(area.id);
+      }
+
+      // 系統ごとの経路の形（#189）。GTFS から焼いたものをサーバが配る。
+      // 取れなければ空のままで、バスは2点を直線で結んで動く
+      const SHAPES_API = "api/busShapes";
+      let busShapes = {};
+
+      async function loadBusShapes() {
+        if (location.protocol === "file:") return;
+        try {
+          const res = await fetch(SHAPES_API, { cache: "default" });
+          if (!res.ok) return;
+          busShapes = (await res.json()).routes ?? {};
+        } catch { /* 無ければ直線で動かす */ }
+      }
+
+      /**
+       * 経路の線の上で、ある地点にいちばん近いところを探す（#189）。
+       * @returns {{line:number[][], i:number, t:number, d:number}|null} - i 番目の区間の t（0〜1）の位置
+       */
+      function nearestOnLine(lines, lat, lon) {
+        let best = null;
+        for (const line of lines) {
+          for (let i = 0; i < line.length - 1; i += 1) {
+            const [alat, alon] = line[i];
+            const [blat, blon] = line[i + 1];
+            // 緯度経度のままだと経度が詰まるので、経度に cos を掛けて正方形に近づける
+            const k = Math.cos(alat * Math.PI / 180);
+            const vx = (blon - alon) * k;
+            const vy = blat - alat;
+            const wx = (lon - alon) * k;
+            const wy = lat - alat;
+            const len2 = vx * vx + vy * vy;
+            const t = len2 > 0 ? clamp((wx * vx + wy * vy) / len2, 0, 1) : 0;
+            const dx = wx - vx * t;
+            const dy = wy - vy * t;
+            const d = Math.hypot(dx, dy);
+            if (!best || d < best.d) best = { line, i, t, d };
+          }
+        }
+        return best;
+      }
+
+      // 経路の上に乗っているとみなす距離（度）。だいたい 60m
+      const SNAP_MAX_DEG = 0.0006;
+
+      /**
+       * 2 地点の間を、経路の線に沿った点の列にする（#189）。
+       * どちらかが経路から離れていたら null を返し、呼び出し側は直線で動かす
+       */
+      function routeBetween(route, from, to) {
+        const lines = busShapes[route];
+        if (!lines) return null;
+        const a = nearestOnLine(lines, from.lat, from.lon);
+        const b = nearestOnLine(lines, to.lat, to.lon);
+        // 同じ線の上で、進む向きに並んでいるときだけ使う。
+        // 乗り場で折り返す経路などは線が分かれるので、別の線にまたがったら諦める
+        if (!a || !b || a.line !== b.line || a.d > SNAP_MAX_DEG || b.d > SNAP_MAX_DEG) return null;
+        const ai = a.i + a.t;
+        const bi = b.i + b.t;
+        if (bi <= ai) return null;
+        const at = (idx) => {
+          const i = Math.min(Math.floor(idx), a.line.length - 2);
+          const t = idx - i;
+          const [la1, lo1] = a.line[i];
+          const [la2, lo2] = a.line[i + 1];
+          return { lat: la1 + (la2 - la1) * t, lon: lo1 + (lo2 - lo1) * t };
+        };
+        const pts = [at(ai)];
+        for (let i = Math.ceil(ai); i < bi; i += 1) pts.push({ lat: a.line[i][0], lon: a.line[i][1] });
+        pts.push(at(bi));
+        return pts;
+      }
+
+      // 展示モード: バスの位置は 30 秒ごとにしか来ないので、そのままだと 30 秒ごとに瞬間移動する。
+      // 前の位置から新しい位置へ、その 30 秒をかけて動かす。見えている位置は最大 30 秒ぶん
+      // 遅れることになるが、止まって見えないほうを取る（#187）。
+      // 経路の形（#189）があるときは、その線に沿って動かす。無ければ2点を直線で結ぶ
+      function glideBuses(now) {
+        for (const [, u] of ui) {
+          let moved = false;
+          for (const b of u.buses) {
+            if (!b.path) continue;
+            const t = Math.min(1, (now - b.at) / BUS_REFRESH_MS);
+            const p = alongPath(b.path, t);
+            // 経路に沿って動いている間は、矢印も実際に進んでいる向きに合わせる。
+            // odpt:azimuth はその時点の向きなので、曲がっている途中だと動きとずれる（#189）
+            const heading = b.path.snapped ? headingOnPath(b.path, t) : null;
+            if (heading !== null) {
+              const dir = b.node.querySelector(".dir");
+              if (dir) dir.style.transform = `rotate(${heading.toFixed(0)}deg)`;
+            }
+            b.x = p.x;
+            b.y = p.y;
+            moved = true;
+            if (t >= 1) b.path = null;
+          }
+          if (moved) {
+            for (const b of u.buses) placeMarker(b.node, u.view, b.x, b.y);
+            // 動いているものに付けた輪は、一緒に動かす
+            for (const ping of u.pings) placeMarker(ping.node, u.view, ping.of.x, ping.of.y);
+          }
+        }
+        requestAnimationFrame(glideBuses);
+      }
+
+      /** 点の列（地図の座標）の、全体の t（0〜1）の位置 */
+      function alongPath(path, t) {
+        const total = path.total;
+        if (!(total > 0)) return path.points[0];
+        let want = total * t;
+        for (let i = 0; i < path.points.length - 1; i += 1) {
+          const seg = path.lengths[i];
+          if (want <= seg || i === path.points.length - 2) {
+            const r = seg > 0 ? want / seg : 0;
+            const a = path.points[i];
+            const c = path.points[i + 1];
+            return { x: a.x + (c.x - a.x) * r, y: a.y + (c.y - a.y) * r };
+          }
+          want -= seg;
+        }
+        return path.points[path.points.length - 1];
+      }
+
+      /**
+       * 点の列の、全体の t（0〜1）のところで進んでいる向き（#189）。
+       * 地図は 1px = 1m の正射なので、画面の向き＝実際の方位。0 が北で時計回り
+       */
+      function headingOnPath(path, t) {
+        if (!(path.total > 0)) return null;
+        let want = path.total * t;
+        for (let i = 0; i < path.points.length - 1; i += 1) {
+          const seg = path.lengths[i];
+          if (want <= seg || i === path.points.length - 2) {
+            const a = path.points[i];
+            const b = path.points[i + 1];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            if (dx === 0 && dy === 0) return null;
+            // y は下向きが南なので、北を 0 にするには -dy を使う
+            return (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+          }
+          want -= seg;
+        }
+        return null;
+      }
+
+      /** 地図の座標の点の列から、区間ごとの長さを数えておく（毎フレーム数えないため） */
+      function makePath(points) {
+        const lengths = [];
+        let total = 0;
+        for (let i = 0; i < points.length - 1; i += 1) {
+          const d = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+          lengths.push(d);
+          total += d;
+        }
+        return { points, lengths, total };
+      }
+
+      function renderBusPanel(bus) {
+        const sec = el("section", { class: "panel", "aria-label": "選んだバス" });
+        sec.append(panelHead([bus.route ? `${bus.route}系統` : "市営バス", bus.terminal ? `${bus.terminal}行` : null].filter(Boolean).join("　"), "バスの情報を閉じる"));
+        sec.append(el("div", { class: "panel-meta" },
+          el("span", { text: "市営バス" }),
+          bus.delay > 0 ? el("span", { class: "late", text: `${bus.delay}分遅れ` })
+            : bus.delay === 0 ? el("span", { style: "font-weight: 700", text: "定刻" })
+              : el("span", { class: "muted", text: "遅れは分かりません" }),
+          bus.occupancy ? el("span", { class: "muted", text: bus.occupancy }) : null));
+
+        if (bus.stops && bus.stops.length) {
+          for (const st of bus.stops) {
+            const note = st.kind === "next" ? "次に止まる" : st.kind === "terminal" ? (st.name.includes("横浜駅") ? "横浜駅に着く見込み" : "終点") : "";
+            // 遅れているときは、時刻表の時刻に赤い二重線を引いて見込みに訂正する（#200）。
+            // 「見込みです」と文で書いても見落とされるため
+            const corrected = st.expected !== st.time;
+            sec.append(el("div", { class: `ride-row ${st.kind}` },
+              el("span", { class: "dot" }),
+              el("span", { class: "name" }, st.name, note ? el("small", { text: note }) : null),
+              el("span", { class: "time" },
+                corrected ? el("s", { class: "was", text: st.time }) : null,
+                st.expected, el("small", { text: "着" }))));
+          }
+        } else {
+          sec.append(el("p", { class: "panel-empty", text: bus.next ? `次は ${bus.next} に止まります。この先の時刻を取得できませんでした。` : "この先の時刻を取得できませんでした。" }));
+        }
+        const at = bus.reportedAt ? new Date(bus.reportedAt) : null;
+        sec.append(el("p", { class: "panel-foot" },
+          at && !isNaN(at) ? `位置は ${hhmm(at)} 時点` : "",
+          reportButton(at && !isNaN(at) ? "　／　この位置を報告" : "この位置を報告", "delay", () => reportContext())));
+        return sec;
+      }
+
+      // バスの位置が取れたかどうか（#198）。台数ではなくこの3つだけを凡例に小さく添える。
+      // #84 の「位置が取れないとき・走っていない時間帯を、黙って空にしない」を満たすのが目的
+      const BUS_STATUS_LABEL = {
+        ok: "取得成功",
+        empty: "取得成功（周辺に運行中のバスなし）",
+        error: "取得失敗",
+      };
+      let busStatus = null;
+      // 位置の生成時刻（dc:date）のうち、いちばん新しいもの（#220。2.1.1）
+      let busReportedAt = null;
+
+      function setBusStatus(status) {
+        if (busStatus === status) return;
+        busStatus = status;
+        renderLegend();
+      }
+
+      // 口そのものが無いと分かったときは、バスの層・切り替え・凡例を消す
+      function hideBuses() {
+        busAvailable = false;
+        clearTimeout(busTimer);
+        busTimer = null;
+        for (const area of data.areas) { busesByArea[area.id] = []; renderBuses(area); }
+        busStatus = null;
+        busReportedAt = null;
+        renderControls();
+        renderLegend();
+      }
+
+      // 次に取り直すまでのあいだに dct:valid（生成から約 36 秒）を過ぎた位置は、画面から外す（ODPT ガイドライン 2.1.2）。
+      // 取得は odpt:frequency（30 秒）より短くできないので、外すことで「古い位置を出さない」を守る
+      function dropExpiredBuses() {
+        const now = Date.now();
+        let changed = false;
+        for (const area of data.areas) {
+          const list = busesByArea[area.id] ?? [];
+          const alive = list.filter((b) => !b.validUntil || !(Date.parse(b.validUntil) < now));
+          if (alive.length === list.length) continue;
+          busesByArea[area.id] = alive;
+          renderBuses(area);
+          changed = true;
+        }
+        if (changed && state.sel && state.sel.kind === "bus") renderSelection();
+      }
+      setInterval(dropExpiredBuses, 5000);
+
+      async function fetchBuses() {
+        if (!busAvailable || busFetching) return;
+        // file:// で開いたときは口が無いと分かりきっている。取得エラーではなく、バスの表示ごと畳む
+        if (location.protocol === "file:") return hideBuses();
+        busFetching = true;
+        clearTimeout(busTimer);
+
+        try {
+          const res = await fetch(BUSES_API, { cache: "no-store" });
+          // 404（静的配信）・503（サーバにキーが無い）は、待っても出ないので畳む
+          if (res.status === 404 || res.status === 503) return hideBuses();
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const body = await res.json();
+          noteDemo(body);
+          busReportedAt = body.reportedAt ?? null;
+          for (const area of data.areas) {
+            busesByArea[area.id] = (body.areas && body.areas[area.id]) || [];
+            renderBuses(area);
+          }
+          updateBusNote();
+          renderLegend();
+          // 選んでいたバスが範囲から出たら、欄を閉じる。まだいれば新しい位置と遅れで描き直す
+          if (state.sel && state.sel.kind === "bus") renderSelection();
+        } catch (error) {
+          busReportedAt = null;
+          for (const area of data.areas) { busesByArea[area.id] = []; renderBuses(area); }
+          setBusStatus("error");
+        } finally {
+          busFetching = false;
+          busLastFetchedAt = Date.now();
+          scheduleBuses(BUS_REFRESH_MS);
+        }
+      }
+
+      function updateBusNote() {
+        if (!busAvailable) return;
+        setBusStatus((busesByArea[state.area] || []).length ? "ok" : "empty");
+      }
+
+      function scheduleBuses(delayMs) {
+        clearTimeout(busTimer);
+        busTimer = null;
+        if (!busAvailable || document.hidden) return;
+        busTimer = setTimeout(fetchBuses, delayMs);
+      }
+
+      // ---- 台数の取得と自動更新 ----
+
+      function toRealtime(stations, lastUpdated) {
+        return { stations: new Map(stations.map((st) => [String(st.station_id), st])), lastUpdated: new Date(lastUpdated * 1000) };
+      }
+
+      // サーバから。口そのものが無ければ null を返し、呼び出し側でフィード直読みに切り替える
+      // 仮データで表示しているか（#276）。サーバが、台数・バス・時刻表・電車の応答に demo を付けて知らせる。
+      // 展示モードでも出す（作り物だと分からないまま見せない）
+      function noteDemo(body) {
+        if (body && typeof body.demo === "boolean") document.getElementById("demo-banner").hidden = !body.demo;
+      }
+
+      async function loadFromServer() {
+        let body;
+        try {
+          const res = await fetch(STATUS_API, { cache: "no-store" });
+          if (!res.ok) return null;
+          body = await res.json();
+          if (!body || !body.operators) return null;
+          noteDemo(body);
+        } catch (error) {
+          return null;
+        }
+        // 口はある。事業者ごとの失敗はそのまま伝える（ここでフィード直読みに落とすと、
+        // サーバ側のキャッシュを素通りして全国分を毎回落としてしまう）
+        return Object.keys(STATUS_FEEDS).map((op) => {
+          const v = body.operators[op];
+          return v && Array.isArray(v.stations)
+            ? { status: "fulfilled", value: toRealtime(v.stations, v.lastUpdated) }
+            : { status: "rejected", reason: new Error(`${op}: ${(v && v.error) || "応答なし"}`) };
+        });
+      }
+
+      function loadFromFeeds() {
+        return Promise.allSettled(Object.entries(STATUS_FEEDS).map(async ([op, url]) => {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) throw new Error(`${op}: HTTP ${res.status}`);
+          const body = await res.json();
+          return toRealtime(body.data.stations, body.last_updated);
+        }));
+      }
+
+      // 自動更新の間隔。GBFS の ttl もサーバのキャッシュも 60 秒なので、これより短くしても数字は新しくならない
+      const REFRESH_INTERVAL_MS = 60 * 1000;
+      let refreshTimer = null;
+      let lastFetchedAt = 0;
+      let fetching = false;
+
+      async function fetchRealtime() {
+        if (fetching) return;
+        fetching = true;
+        clearTimeout(refreshTimer);
+        const button = document.getElementById("refresh");
+        const status = document.getElementById("rt-status");
+        button.disabled = true;
+
+        try {
+          const results = (await loadFromServer()) ?? (await loadFromFeeds());
+          const failed = [];
+          Object.keys(STATUS_FEEDS).forEach((op, i) => {
+            const r = results[i];
+            if (r.status === "fulfilled") realtime[op] = r.value;
+            else { realtime[op] = null; failed.push(op); }
+          });
+          renderPins();
+          renderList();
+          // ここに出すのは更新をかけた時刻。データの時点は「くわしく」の表
+          status.textContent = `${hhmm(new Date())} 更新（自動で更新）`;
+          updatedAtText = status.textContent;
+          renderLegend();
+          if (failed.length) status.append(el("span", { class: "warn", text: `　${failed.map(operatorLabel).join("・")}の台数を取得できませんでした` }));
+          // 時刻の欄を開いていれば、遅れも取り直す
+          if (state.sel && state.sel.kind === "stop") loadTimetable(true).then(() => renderSelection());
+        } finally {
+          button.disabled = false;
+          fetching = false;
+          lastFetchedAt = Date.now();
+          scheduleRefresh(REFRESH_INTERVAL_MS);
+        }
+      }
+
+      // 画面が見えていないときは予約しない（visibilitychange で再開する）
+      function scheduleRefresh(delayMs) {
+        clearTimeout(refreshTimer);
+        refreshTimer = null;
+        if (document.hidden) return;
+        refreshTimer = setTimeout(fetchRealtime, delayMs);
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          clearTimeout(refreshTimer); refreshTimer = null;
+          clearTimeout(busTimer); busTimer = null;
+          return;
+        }
+        if (!fetching) {
+          const elapsed = Date.now() - lastFetchedAt;
+          if (elapsed >= REFRESH_INTERVAL_MS) fetchRealtime();
+          else scheduleRefresh(REFRESH_INTERVAL_MS - elapsed);
+        }
+        if (busAvailable && !busFetching) {
+          const elapsed = Date.now() - busLastFetchedAt;
+          if (elapsed >= BUS_REFRESH_MS) fetchBuses();
+          else scheduleBuses(BUS_REFRESH_MS - elapsed);
+        }
+      });
+
+      // ---- 状態の切り替え ----
+
+      function setArea(id) {
+        if (state.area === id) return;
+        state.area = id;
+        if (state.sel && state.sel.area !== id) state.sel = null;
+        applyArea();
+        renderControls();
+        renderLegend();
+        renderList();
+        renderSelection();
+        updateBusNote();
+      }
+
+      function applyArea() {
+        for (const [areaId, u] of ui) u.viewport.hidden = areaId !== state.area;
+        // 隠していた地図は大きさが 0 なので、出したところで測り直す
+        const u = ui.get(state.area);
+        u.view.measure();
+        // 展示モードの ?zoom= / ?center= は、測り直したあとに掛ける。
+        // 隠れている地図は大きさが 0 で全体表示の倍率が出せないため（#187）
+        if (KIOSK) applyKioskView(state.area);
+        syncZoomButtons();
+      }
+
+      /** 設営時に URL で決めた倍率と中央を、そのエリアの地図に当てる（#187） */
+      function applyKioskView(areaId) {
+        const u = ui.get(areaId);
+        const area = areaById.get(areaId);
+        if (KIOSK_ZOOM !== 1) { u.view.scale = u.view.fit * KIOSK_ZOOM; u.view.apply(); }
+        if (KIOSK_CENTER) {
+          const { bbox } = area;
+          const inside = KIOSK_CENTER.lat >= bbox.latMin && KIOSK_CENTER.lat <= bbox.latMax
+            && KIOSK_CENTER.lon >= bbox.lonMin && KIOSK_CENTER.lon <= bbox.lonMax;
+          if (inside) { const { x, y } = project(KIOSK_CENTER, area); u.view.panTo(x, y); }
+        }
+      }
+
+      function toggleLayer(kind) {
+        state.layers[kind] = !state.layers[kind];
+        applyLayers();
+        // 消した層のものを選んでいたら、欄も閉じる（出所が見えない欄を残さない）
+        const kindOf = { stop: "stops", bus: "buses", station: "stations" };
+        if (state.sel && kindOf[state.sel.kind] === kind && !state.layers[kind]) state.sel = null;
+        renderControls();
+        renderSelection();
+      }
+
+      function applyLayers() {
+        for (const u of ui.values()) {
+          for (const k of ["ports", "stops", "buses"]) u.viewport.classList.toggle(`hide-${k}`, !state.layers[k]);
+          // 駅はキーが無い配信では機能ごと畳む（#186・#100）
+          u.viewport.classList.toggle("hide-stations", !state.layers.stations || !trainsAvailable);
+          // 出口はキーも口も要らない（areas.json に書いてある）ので、層の切り替えだけ見る
+          u.viewport.classList.toggle("hide-exits", !state.layers.exits);
+        }
+      }
+
+      function setOp(op) {
+        state.op = op;
+        saveOp(op);
+        renderControls();
+        renderPins();
+        renderList();
+      }
+
+      // 拡大縮小のボタン。いま出ている地図に効く
+      function syncZoomButtons() {
+        const u = ui.get(state.area);
+        if (!u) return;
+        const v = u.view;
+        const zoom = document.getElementById("map-zoom");
+        zoom.querySelector('[data-zoom="out"]').disabled = v.atFit;
+        zoom.querySelector('[data-zoom="fit"]').disabled = v.atFit;
+        zoom.querySelector('[data-zoom="in"]').disabled = v.scale >= v.fit * MAX_ZOOM_FACTOR * 0.999;
+      }
+      document.getElementById("map-zoom").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-zoom]");
+        if (!b) return;
+        const v = ui.get(state.area).view;
+        if (b.dataset.zoom === "fit") v.reset();
+        else v.zoomBy(b.dataset.zoom === "in" ? ZOOM_STEP : 1 / ZOOM_STEP);
+      });
+
+      // ---- 展示モード：しばらく触られなかったら最初に戻す（#180）----
+
+      // ---- 展示モード: 自動でめくる（#187）----
+      //
+      // 来場者には触らせず、出せるものを順に選んでいく。欄が出るのは
+      // バス停・走っているバス・出発地の建物の3種類。中身が無いものは飛ばし、
+      // 1エリアを一周したら次のエリアへ移る
+
+      let kioskQueue = [];
+
+      // 1周でめくるバスの上限（#252）。走っているバスは多い時間帯に数十台になり、
+      // 全部めくると1つのエリアに数分居続けるので、数台に絞って次のエリアへ移る
+      const KIOSK_MAX_BUSES = 5;
+      // 車両ごとに最後にめくった順番。同じバスばかり出ないよう、めくっていないものから選ぶ
+      const kioskBusSeen = new Map();
+      let kioskBusTick = 0;
+
+      function kioskPickBuses(buses) {
+        const picked = [...buses]
+          .sort((a, b) => (kioskBusSeen.get(a.bus.id) ?? -1) - (kioskBusSeen.get(b.bus.id) ?? -1))
+          .slice(0, KIOSK_MAX_BUSES);
+        for (const b of picked) kioskBusSeen.set(b.bus.id, kioskBusTick++);
+        return picked;
+      }
+
+      function kioskTargets(areaId) {
+        const area = areaById.get(areaId);
+        const u = ui.get(areaId);
+        const out = [];
+        for (const s of u.stops) {
+          // その日の便が無いバス停は飛ばす（常盤祭の土日は構内の便がほとんど無い）
+          if ((timetable?.stops?.[s.name] ?? []).length) out.push({ kind: "stop", area: areaId, id: s.name });
+        }
+        for (const st of u.stations) {
+          // キーが無い配信では駅の印ごと出ないので、めくる対象にも入れない
+          if (trainsAvailable) out.push({ kind: "station", area: areaId, id: st.id });
+        }
+        for (const b of kioskPickBuses(u.buses)) out.push({ kind: "bus", area: areaId, id: b.bus.id });
+        for (const d of area.departures ?? []) out.push({ kind: "dep", area: areaId, id: d.id });
+        return out;
+      }
+
+      // 1周ぶんを作り直している最中か（時刻表の読み込みを待つあいだに、次のめくりが来ても重ねない）
+      let kioskRefilling = false;
+
+      function kioskStep() {
+        if (kioskQueue.length) {
+          select(kioskQueue.shift() ?? null);
+          return;
+        }
+        if (kioskRefilling) return;
+        kioskRefilling = true;
+        // 1周するたびに時刻表を読み直してから、めくる対象を作る（#233）。
+        // 「その日の便があるバス停」だけをめくるので、起動時の1回の読み込みに失敗すると
+        // 全部のバス停が飛ばされ、バス停を選ばないので読み直すきっかけも無いままになっていた。
+        // loadTimetable は 60 秒以内なら読み直さず、日付が変わったら取り直す
+        loadTimetable().finally(() => {
+          kioskRefilling = false;
+          // 一周したら次のエリアへ。エリアが1つしかなければそのまま
+          const ids = data.areas.map((a) => a.id);
+          const next = ids[(ids.indexOf(state.area) + 1) % ids.length];
+          if (next !== state.area) setArea(next);
+          // 切り替えた直後は、まず地図を一枚そのまま見せる（null = 何も選ばない）。
+          // 対象が少ないエリア（横浜駅はバス停1つ）でも一瞬で通り過ぎないようにする
+          kioskQueue = [null, ...kioskTargets(state.area)];
+          select(kioskQueue.shift() ?? null);
+        });
+      }
+
+      // ---- 組み立て ----
+
+      const frame = document.getElementById("map-frame");
+      for (const area of data.areas) frame.appendChild(buildMap(area));
+      renderControls();
+      renderLegend();
+      applyLayers();
+      applyArea();
+      renderPins();
+      renderList();
+      renderFavorites();
+      // 覚えている停留所があるなら、開いた時点で次の発車を出す（#146）
+      if (state.favorites.length) loadTimetable().finally(renderFavorites);
+      for (const u of ui.values()) u.view.measure();
+
+      // ページの下の断り書き（#199）。「くわしく」と同じ組み立てを使い回す。
+      // 「こちら」が押せるかは報告の可否で決まるので、関数にして読み直せるようにする（#204）
+      function renderSiteDisclaimer() {
+        const box = document.getElementById("site-disclaimer");
+        box.textContent = "";
+        box.append(...disclaimerParts(
+          "本ページの情報は公共交通事業者より提供されたデータを元に表示していますが、",
+          strongText("必ずしも正確・完全なものとは限りません。")));
+      }
+      renderSiteDisclaimer();
+
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.sel) closePanel(); });
+      document.getElementById("refresh").addEventListener("click", () => { fetchRealtime(); fetchBuses(); });
+      fetchRealtime();
+      fetchBuses();
+      // 報告の受け口（#204）。止めていたら空で返るので、入口ごと出さない。
+      // 先に読んでから一覧と免責を描き直す（「こちら」が押せるかが決まるため）
+      loadReportKinds().finally(() => { renderList(); renderSiteDisclaimer(); });
+
+      // ダイアログの操作
+      document.getElementById("report-send").addEventListener("click", sendReport);
+      for (const id of ["report-cancel"]) document.getElementById(id).addEventListener("click", () => document.getElementById("report-dialog").close());
+      document.querySelector("#report-dialog .panel-head .x").addEventListener("click", () => document.getElementById("report-dialog").close());
+
+      // 駅の発車時刻（#186）。503 なら駅の印ごと畳むので、開いた時点で一度読む
+      loadTrains().finally(() => {
+        if (!trainsAvailable && state.sel?.kind === "station") state.sel = null;
+        renderControls();
+        renderLegend();
+        applyLayers();
+        renderSelection();
+      });
+
+      if (KIOSK) {
+        // 設営でプロジェクタに合わせる（いま出ているエリアに当てる。ほかは出たときに applyArea が当てる）
+        applyKioskView(state.area);
+        // バス停の時刻表は、めくる前に読んでおく（中身の無い停留所を飛ばす判定に要る）
+        Promise.all([loadTimetable(), loadTrains()]).finally(() => { kioskStep(); setInterval(kioskStep, KIOSK_STEP_MS); });
+        // 経路の形を読んでおく。読めなくてもバスは直線で動く（#189）
+        loadBusShapes();
+        requestAnimationFrame(glideBuses);
+      }
+    })();
+  </script>
+    <!-- 報告・お問い合わせ（#204）。はまこく Exp. と同じ受け口へ送る。
+         REPORT_ENABLED=false のときは /api/report-kinds が空を返すので、入口ごと出さない -->
+    <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-title">
+      <form method="dialog" id="report-form">
+        <div class="panel-head">
+          <h2 id="report-title">team301 に報告する</h2>
+          <button type="button" class="x" value="cancel" aria-label="閉じる">×</button>
+        </div>
+        <div class="report-body">
+          <p class="report-lead">交通事業者へのお問い合わせはご遠慮ください。氏名・連絡先の記入は不要です。</p>
+          <label class="report-field">
+            <span>種類</span>
+            <select id="report-kind"></select>
+          </label>
+          <label class="report-field">
+            <span>内容</span>
+            <textarea id="report-message" rows="4" maxlength="1000" placeholder="お気づきの点をご記入ください"></textarea>
+          </label>
+          <p class="report-context" id="report-context" hidden></p>
+          <!-- 人には見えない罠の欄（config/report.js の REPORT_HONEYPOT と同じ名前にすること） -->
+          <input type="text" id="report-honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <p class="report-error" id="report-error" hidden></p>
+        </div>
+        <div class="report-actions">
+          <button type="button" class="btn" value="cancel" id="report-cancel">キャンセル</button>
+          <button type="button" class="btn send" id="report-send">送信</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

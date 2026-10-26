@@ -1,0 +1,12 @@
+<%# 共有されたときの見え方（#126）。og:image と og:url は絶対 URL でないと読まれない。
+    基点は config/site.js の SITE_ORIGIN（既定 https://team301.jp、SITE_ORIGIN で差し替え可）%>
+<title><%= meta.title %></title>
+<meta name="description" content="<%= meta.description %>">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="team 301">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:title" content="<%= meta.title %>">
+<meta property="og:description" content="<%= meta.description %>">
+
+<meta name="twitter:title" content="<%= meta.title %>">
+<meta name="twitter:description" content="<%= meta.description %>">
